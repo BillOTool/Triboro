@@ -3,109 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TRIBORO</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Almanapp · Triboro</title>
+  <link rel="stylesheet" href="feed.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
 </head>
 <body>
 
-  <!-- ═══ API Key Modal ═══ -->
-  <div class="api-key-modal" id="api-key-modal">
-    <div class="api-key-card">
-      <div class="api-key-logo">🏢</div>
-      <div class="api-key-title">TRIBORO</div>
-      <div class="api-key-subtitle">This game uses AI-powered characters.<br>You need a free Google Gemini API key to play.</div>
-      <a href="https://aistudio.google.com/apikey" target="_blank" class="api-key-link">Get a free key at aistudio.google.com &rarr;</a>
-      <input type="text" class="api-key-input" id="api-key-input"
-             placeholder="Paste your Gemini API key here..." spellcheck="false" autocomplete="off">
-      <div class="api-key-error" id="api-key-error"></div>
-      <button class="api-key-btn" id="api-key-submit">Connect</button>
-      <div class="api-key-hint">Free. No credit card. Your key stays on the local server.</div>
+  <header class="masthead">
+    <div class="masthead-top">
+      <span class="masthead-meta-l" id="mast-date">VOL. LXXIII · Bulletin No. 1</span>
+      <span class="masthead-meta-r" id="mast-smog">SMOG 847 PPM</span>
     </div>
-  </div>
+    <a href="#/" class="masthead-title">ALMANAPP</a>
+    <div class="masthead-tagline">All the building's news, posted by the building's people</div>
+  </header>
 
-  <!-- ═══ Boot Screen ═══ -->
-  <div id="boot-screen">
-    <div class="boot-content"></div>
-  </div>
+  <nav class="subnav">
+    <a href="#/" data-route="feed" class="active">Feed</a>
+    <a href="#/people" data-route="people">People</a>
+    <a href="#/events" data-route="events">Events</a>
+    <a href="#/about" data-route="about">About Triboro</a>
+  </nav>
 
-  <!-- ═══ Desktop ═══ -->
-  <div id="desktop">
-    <div class="desktop-icons">
-      <div class="desktop-icon" onclick="openApp('hackhub')">
-        <span class="icon-img">💻</span>
-        <span class="icon-label">Hack Hub</span>
-      </div>
-      <div class="desktop-icon" onclick="openApp('almanapp')">
-        <span class="icon-img">🌐</span>
-        <span class="icon-label">Almanapp</span>
-      </div>
-      <div class="desktop-icon" onclick="openApp('news')">
-        <span class="icon-img">📺</span>
-        <span class="icon-label">TB News</span>
-      </div>
-      <div class="desktop-icon" onclick="openApp('spoofkit')">
-        <span class="icon-img">🎭</span>
-        <span class="icon-label">Spoof Kit</span>
-      </div>
-    </div>
-  </div>
+  <main id="root"></main>
 
-  <!-- ═══ Objective Banner ═══ -->
-  <div class="objective-banner" id="objective-banner">
-    <span class="objective-icon">📌</span>
-    <span class="objective-label">Objective:</span>
-    <span class="objective-text" id="objective-text"></span>
-  </div>
+  <footer>
+    <div>Triboro · Year 73 · Population approx. 6,000</div>
+    <div class="muted">All posts in-world fiction. No residents were stuck in real elevators.</div>
+  </footer>
 
-  <!-- ═══ Taskbar ═══ -->
-  <div id="taskbar">
-    <div class="taskbar-spacer"></div>
-    <div class="taskbar-smog">☁️ SMOG: 847 PPM</div>
-    <div class="taskbar-clock">--:--</div>
-  </div>
-
-  <!-- ═══ Notification Area ═══ -->
-  <div class="notification-area"></div>
-
-  <!-- ═══ Mission Briefing Overlay ═══ -->
-  <div class="mission-overlay" id="mission-overlay">
-    <div class="mission-card">
-      <div class="mission-label">New Job Available</div>
-      <div class="mission-title" id="mission-title"></div>
-      <div class="mission-text" id="mission-briefing-text"></div>
-      <div class="mission-meta">
-        <div class="mission-meta-item">
-          <div class="mission-meta-label">Pay</div>
-          <div class="mission-meta-value">200 credits</div>
-        </div>
-        <div class="mission-meta-item">
-          <div class="mission-meta-label">Difficulty</div>
-          <div class="mission-meta-value">Low</div>
-        </div>
-        <div class="mission-meta-item">
-          <div class="mission-meta-label">Client</div>
-          <div class="mission-meta-value">Marla Voss</div>
-        </div>
-      </div>
-      <button class="mission-accept-btn" id="mission-accept-btn">ACCEPT JOB</button>
-    </div>
-  </div>
-
-  <!-- ═══ Ending Overlay ═══ -->
-  <div class="ending-overlay" id="ending-overlay">
-    <div class="ending-card">
-      <div class="ending-label">Mission Complete</div>
-      <div class="ending-title">The Suspicious Wife</div>
-      <div class="ending-text" id="ending-text"></div>
-      <button class="ending-continue-btn" id="ending-continue-btn">CONTINUE</button>
-    </div>
-  </div>
-
-  <!-- ═══ Scripts ═══ -->
-  <script src="content.js"></script>
-  <script src="characters.js"></script>
-  <script src="game.js"></script>
-
+  <script src="feed.js"></script>
 </body>
 </html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Triboro · Authoring</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <header>
+    <h1>TRIBORO · authoring</h1>
+    <nav>
+      <button data-tab="events" class="active">Events</button>
+      <button data-tab="posts">Posts</button>
+      <button data-tab="characters">Characters</button>
+      <button data-tab="world">World</button>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ── EVENTS ─────────────────────────────── -->
+    <section id="tab-events" class="tab active">
+      <div class="col">
+        <h2>New event</h2>
+        <p class="hint">A one-line headline of something that just happened in Triboro. The LLM will fan out reactions from the characters you pick.</p>
+        <input id="event-title" placeholder="Floor 41 elevators stuck for 6 hours, Rita brought a folding chair">
+        <textarea id="event-desc" placeholder="(optional) extra detail, what people saw, how it ended..."></textarea>
+
+        <h3>Pick characters to react</h3>
+        <div id="char-picker" class="char-picker"></div>
+        <div class="row">
+          <label>Posts per character: <input id="n-per-char" type="number" value="1" min="1" max="3" style="width:50px"></label>
+          <button id="btn-add-event">Save event</button>
+          <button id="btn-add-and-generate" class="primary">Save + Generate</button>
+        </div>
+        <div id="event-status" class="status"></div>
+      </div>
+
+      <div class="col">
+        <h2>Recent events</h2>
+        <ul id="events-list" class="list"></ul>
+      </div>
+    </section>
+
+    <!-- ── POSTS ─────────────────────────────── -->
+    <section id="tab-posts" class="tab">
+      <div class="col wide">
+        <h2>Posts</h2>
+        <div class="row">
+          <label><input type="checkbox" id="filter-unpublished"> Unpublished only</label>
+          <label><input type="checkbox" id="filter-pinned"> Pinned only</label>
+          <button id="btn-publish-all">Publish all visible</button>
+        </div>
+        <ul id="posts-list" class="list posts"></ul>
+      </div>
+    </section>
+
+    <!-- ── CHARACTERS ─────────────────────────── -->
+    <section id="tab-characters" class="tab">
+      <div class="col">
+        <h2>Characters</h2>
+        <ul id="chars-list" class="list"></ul>
+      </div>
+      <div class="col wide">
+        <h2 id="char-editor-title">Pick a character</h2>
+        <textarea id="char-editor" rows="32" placeholder="markdown with frontmatter"></textarea>
+        <div class="row">
+          <button id="btn-save-char" class="primary">Save</button>
+          <span id="char-save-status" class="status"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── WORLD ──────────────────────────────── -->
+    <section id="tab-world" class="tab">
+      <div class="col wide">
+        <h2>World context</h2>
+        <p class="hint">Read-only. Edit <code>data/world.md</code> directly.</p>
+        <pre id="world-text"></pre>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>
