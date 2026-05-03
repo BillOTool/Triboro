@@ -9,10 +9,10 @@
   <header>
     <h1>TRIBORO · authoring</h1>
     <nav>
-      <button data-tab="events" class="active">Events</button>
-      <button data-tab="posts">Posts</button>
-      <button data-tab="characters">Characters</button>
-      <button data-tab="world">World</button>
+      <button type="button" data-tab="events" class="active">Events</button>
+      <button type="button" data-tab="posts">Posts</button>
+      <button type="button" data-tab="characters">Characters</button>
+      <button type="button" data-tab="world">World</button>
     </nav>
   </header>
 
@@ -30,8 +30,8 @@
         <div id="char-picker" class="char-picker"></div>
         <div class="row">
           <label>Posts per character: <input id="n-per-char" type="number" value="1" min="1" max="3" style="width:50px"></label>
-          <button id="btn-add-event">Save event</button>
-          <button id="btn-add-and-generate" class="primary">Save + Generate</button>
+          <button type="button" id="btn-add-event">Save event</button>
+          <button type="button" id="btn-add-and-generate" class="primary">Save + Generate</button>
         </div>
         <div id="event-status" class="status"></div>
       </div>
@@ -45,11 +45,45 @@
     <!-- ── POSTS ─────────────────────────────── -->
     <section id="tab-posts" class="tab">
       <div class="col wide">
-        <h2>Posts</h2>
+        <h2>Write a post</h2>
+        <p class="hint">Hand-write a post in a character's voice. Optionally attach to an event.</p>
+        <div class="row">
+          <select id="new-post-char"></select>
+          <button type="button" id="btn-toggle-quick-char">+ New character</button>
+          <select id="new-post-event">
+            <option value="">— no event (loose chatter) —</option>
+          </select>
+        </div>
+
+        <div id="quick-char-form" class="quick-char" style="display:none;">
+          <div class="row">
+            <label>id <input type="text" id="qc-id" placeholder="first_last" style="width:160px;"></label>
+            <label>name <input type="text" id="qc-name" placeholder="First Last" style="width:160px;"></label>
+            <label>handle <input type="text" id="qc-handle" placeholder="@FirstLast" style="width:140px;"></label>
+            <label>floor <input type="text" id="qc-floor" placeholder="22" style="width:60px;"></label>
+            <label>avatar <input type="text" id="qc-avatar" placeholder="🦝" style="width:50px;"></label>
+          </div>
+          <textarea id="qc-sketch" rows="2" placeholder="One-line sketch — who they are, what they're known for. (Optional, fleshed out later in Characters tab.)"></textarea>
+          <div class="row">
+            <button id="btn-qc-cancel" type="button">Cancel</button>
+            <button id="btn-qc-create" class="primary" type="button">Create character</button>
+            <span id="qc-status" class="status"></span>
+          </div>
+        </div>
+
+        <textarea id="new-post-text" rows="3" placeholder="The post, in their voice..."></textarea>
+        <div class="row">
+          <label><input type="checkbox" id="new-post-pinned"> Pin to bulletin</label>
+          <label><input type="checkbox" id="new-post-published" checked> Publish immediately</label>
+          <button type="button" id="btn-add-post" class="primary">Save post</button>
+          <span id="new-post-status" class="status"></span>
+        </div>
+
+        <h2>All posts</h2>
         <div class="row">
           <label><input type="checkbox" id="filter-unpublished"> Unpublished only</label>
           <label><input type="checkbox" id="filter-pinned"> Pinned only</label>
-          <button id="btn-publish-all">Publish all visible</button>
+          <button type="button" id="btn-publish-all">Publish all visible</button>
         </div>
         <ul id="posts-list" class="list posts"></ul>
       </div>
@@ -59,13 +93,19 @@
     <section id="tab-characters" class="tab">
       <div class="col">
         <h2>Characters</h2>
+        <button type="button" id="btn-new-char" class="primary" style="width: 100%; margin-bottom: 12px;">+ New character</button>
         <ul id="chars-list" class="list"></ul>
       </div>
       <div class="col wide">
         <h2 id="char-editor-title">Pick a character</h2>
+        <div id="char-id-row" class="row" style="display:none;">
+          <label>id (filename, lowercase + underscores):
+            <input type="text" id="char-id-input" placeholder="first_last" style="width:240px;">
+          </label>
+        </div>
         <textarea id="char-editor" rows="32" placeholder="markdown with frontmatter"></textarea>
         <div class="row">
-          <button id="btn-save-char" class="primary">Save</button>
+          <button type="button" id="btn-save-char" class="primary">Save</button>
           <span id="char-save-status" class="status"></span>
         </div>
       </div>

@@ -1,15 +1,86 @@
 // ─── triboro public feed ───
 // reads data/site.json, renders feed / people / events / profile / event-detail
+// + resident auth (anonymous register, server-issued token) and DM-with-character
 
 const ROOT = document.getElementById("root");
 let SITE = null;
 let CHARS_BY_ID = {};
+let RESIDENT = null;  // { id, display_name, avatar, token, rate_remaining, rate_limit }
+
+const TOKEN_KEY = "triboro_token";
+
+const AVATAR_CHOICES = ["👤","🐸","🦝","🦊","🦉","🐝","🐍","🦴","🪞","🕯️","📻","🧷","🧣","🧶"];
 
 async function loadSite() {
   const r = await fetch("data/site.json?t=" + Date.now());
   if (!r.ok) throw new Error("site.json not found");
   SITE = await r.json();
   CHARS_BY_ID = Object.fromEntries(SITE.characters.map(c => [c.id, c]));
+}
+
+// ─── auth ───
+
+function authHeaders() {
+  const t = localStorage.getItem(TOKEN_KEY);
+  return t ? { "Authorization": "Bearer " + t } : {};
+}
+
+function consumeRecoveryParam() {
+  const url = new URL(location.href);
+  const recover = url.searchParams.get("r");
+  if (recover) {
+    localStorage.setItem(TOKEN_KEY, recover);
+    url.searchParams.delete("r");
+    history.replaceState({}, "", url.pathname + url.search + url.hash);
+  }
+}
+
+async function loadResident() {
+  if (!localStorage.getItem(TOKEN_KEY)) {
+    RESIDENT = null;
+    return;
+  }
+  try {
+    const r = await fetch("/api/me", { headers: authHeaders() });
+    if (!r.ok) {
+      localStorage.removeItem(TOKEN_KEY);
+      RESIDENT = null;
+      return;
+    }
+    const me = await r.json();
+    RESIDENT = { ...me, token: localStorage.getItem(TOKEN_KEY) };
+  } catch {
+    RESIDENT = null;
+  }
+}
+
+function recoveryUrl() {
+  if (!RESIDENT) return "";
+  const u = new URL(location.href);
+  u.search = "?r=" + encodeURIComponent(RESIDENT.token);
+  u.hash = "";
+  return u.toString();
+}
+
+async function registerResident(name, avatar) {
+  const r = await fetch("/api/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ display_name: name, avatar }),
+  });
+  if (!r.ok) throw new Error((await r.json()).error || "register failed");
+  const data = await r.json();
+  localStorage.setItem(TOKEN_KEY, data.token);
+  RESIDENT = data;
+  updateAuthChip();
+  return data;
+}
+
+function signOut() {
+  localStorage.removeItem(TOKEN_KEY);
+  RESIDENT = null;
+  updateAuthChip();
+  render();
 }
 
 // ─── routing ───
@@ -28,7 +99,7 @@ function parseRoute() {
 
 function highlightNav() {
   const r = parseRoute();
-  document.querySelectorAll(".subnav a").forEach(a => {
+  document.querySelectorAll(".subnav a[data-route]").forEach(a => {
     const route = a.dataset.route;
     a.classList.toggle("active",
       (r.name === "feed" && route === "feed") ||
@@ -131,10 +202,14 @@ function renderCharacter(id) {
       <div class="profile-avatar">${c.avatar || "👤"}</div>
       <div class="profile-name">${esc(c.name)}</div>
       <div class="profile-meta">${esc(c.handle || "")}${c.floor ? ` · Floor ${esc(c.floor)}` : ""}${c.faction && c.faction !== "none" ? ` · ${esc(c.faction)}` : ""}</div>
+      <button class="message-btn" id="open-chat">Message ${esc(c.name)}</button>
     </div>
+    <div id="chat-mount"></div>
+    <div class="section-label">Posts by ${esc(c.name)}</div>
     ${posts.length
       ? posts.map(p => postHtml(p, { hideName: false })).join("")
       : `<div class="empty">${esc(c.name)} hasn't posted yet.</div>`}`;
+  document.getElementById("open-chat").addEventListener("click", () => openChatFor(id));
 }
 
 function renderEvent(id) {
@@ -191,6 +266,224 @@ function postHtml(p, opts = {}) {
     </article>`;
 }
 
+// ─── chat ───
+
+async function openChatFor(charId) {
+  if (!RESIDENT) {
+    const ok = await openRegisterModal();
+    if (!ok) return;
+  }
+  const mount = document.getElementById("chat-mount");
+  if (!mount) return;
+  const c = CHARS_BY_ID[charId];
+  mount.innerHTML = `
+    <div class="chat-panel" id="chat-panel">
+      <div class="chat-head">
+        <div class="chat-head-l">
+          <span class="chat-avatar">${c.avatar || "👤"}</span>
+          <div>
+            <div class="chat-with">${esc(c.name)}</div>
+            <div class="chat-subtle">private DM · ${RESIDENT.rate_remaining} of ${RESIDENT.rate_limit} messages left today</div>
+          </div>
+        </div>
+        <button class="chat-close" id="chat-close" title="Close">×</button>
+      </div>
+      <div class="chat-body" id="chat-body">
+        <div class="chat-loading">Loading conversation…</div>
+      </div>
+      <form class="chat-form" id="chat-form">
+        <input class="chat-input" id="chat-input" type="text" maxlength="500"
+               placeholder="Message ${esc(c.name)}…" autocomplete="off" />
+        <button class="chat-send" type="submit">Send</button>
+      </form>
+    </div>`;
+  document.getElementById("chat-close").onclick = () => { mount.innerHTML = ""; };
+  document.getElementById("chat-form").onsubmit = (e) => {
+    e.preventDefault();
+    sendChatMessage(charId);
+  };
+  document.getElementById("chat-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("chat-input").focus();
+
+  // load history
+  try {
+    const r = await fetch("/api/chat/" + encodeURIComponent(charId), { headers: authHeaders() });
+    const data = await r.json();
+    renderChatHistory(data.history || []);
+  } catch {
+    renderChatHistory([]);
+  }
+}
+
+function renderChatHistory(history) {
+  const body = document.getElementById("chat-body");
+  if (!body) return;
+  if (!history.length) {
+    body.innerHTML = `<div class="chat-empty">No messages yet. Say something.</div>`;
+    return;
+  }
+  body.innerHTML = history.map(m => chatBubbleHtml(m)).join("");
+  body.scrollTop = body.scrollHeight;
+}
+
+function chatBubbleHtml(m) {
+  const cls = m.role === "user" ? "you" : "them";
+  return `<div class="chat-msg ${cls}"><p>${esc(m.text)}</p></div>`;
+}
+
+async function sendChatMessage(charId) {
+  const input = document.getElementById("chat-input");
+  const body = document.getElementById("chat-body");
+  if (!input || !body) return;
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  input.disabled = true;
+
+  // optimistic append
+  if (body.querySelector(".chat-empty")) body.innerHTML = "";
+  body.insertAdjacentHTML("beforeend", chatBubbleHtml({ role: "user", text }));
+  body.insertAdjacentHTML("beforeend", `<div class="chat-msg them pending"><p>…</p></div>`);
+  body.scrollTop = body.scrollHeight;
+
+  try {
+    const r = await fetch("/api/chat", {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ character_id: charId, message: text }),
+    });
+    const data = await r.json();
+    body.querySelector(".chat-msg.them.pending")?.remove();
+    if (!r.ok) {
+      body.insertAdjacentHTML("beforeend",
+        `<div class="chat-msg system"><p>${esc(data.error || "Something went wrong.")}</p></div>`);
+    } else {
+      body.insertAdjacentHTML("beforeend", chatBubbleHtml({ role: "char", text: data.reply }));
+      if (typeof data.rate_remaining === "number") {
+        RESIDENT.rate_remaining = data.rate_remaining;
+        const sub = document.querySelector(".chat-subtle");
+        if (sub) sub.textContent = `private DM · ${RESIDENT.rate_remaining} of ${RESIDENT.rate_limit} messages left today`;
+      }
+    }
+  } catch (e) {
+    body.querySelector(".chat-msg.them.pending")?.remove();
+    body.insertAdjacentHTML("beforeend",
+      `<div class="chat-msg system"><p>Network error.</p></div>`);
+  } finally {
+    body.scrollTop = body.scrollHeight;
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+// ─── modals ───
+
+function openRegisterModal() {
+  return new Promise(resolve => {
+    let chosenAvatar = "👤";
+    const wrap = document.createElement("div");
+    wrap.className = "modal-backdrop";
+    wrap.innerHTML = `
+      <div class="modal-card">
+        <div class="modal-eyebrow">Almanapp · resident registration</div>
+        <h3>Sign in to message residents</h3>
+        <p class="modal-lede">Reading the bulletin is open to all of Triboro. To DM a resident, the network needs a name to attach to your messages.</p>
+        <label class="modal-label">Your display name
+          <input type="text" id="reg-name" maxlength="40" autocomplete="off" placeholder="e.g. Hank from 38" />
+        </label>
+        <label class="modal-label">Pick an avatar
+          <div class="avatar-row" id="avatar-row">
+            ${AVATAR_CHOICES.map((e, i) => `<button type="button" class="avatar-choice${i===0?" sel":""}" data-e="${e}">${e}</button>`).join("")}
+          </div>
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" id="reg-cancel">Not now</button>
+          <button type="button" class="btn-primary" id="reg-go">Register</button>
+        </div>
+        <p class="modal-fineprint">No password. No email. Your "keycard" lives in this browser — bookmark it from the chip in the corner if you want to come back on another device.</p>
+      </div>`;
+    document.body.appendChild(wrap);
+    const close = (val) => { wrap.remove(); resolve(val); };
+    wrap.addEventListener("click", e => { if (e.target === wrap) close(false); });
+    wrap.querySelector("#reg-cancel").onclick = () => close(false);
+    wrap.querySelectorAll(".avatar-choice").forEach(b => {
+      b.onclick = () => {
+        wrap.querySelectorAll(".avatar-choice").forEach(x => x.classList.remove("sel"));
+        b.classList.add("sel");
+        chosenAvatar = b.dataset.e;
+      };
+    });
+    const nameInput = wrap.querySelector("#reg-name");
+    nameInput.focus();
+    nameInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") wrap.querySelector("#reg-go").click();
+    });
+    wrap.querySelector("#reg-go").onclick = async () => {
+      const name = nameInput.value.trim();
+      if (!name) { nameInput.focus(); return; }
+      try {
+        await registerResident(name, chosenAvatar);
+        close(true);
+      } catch (e) {
+        alert("Couldn't register: " + e.message);
+      }
+    };
+  });
+}
+
+function openKeycardModal() {
+  if (!RESIDENT) { openRegisterModal(); return; }
+  const wrap = document.createElement("div");
+  wrap.className = "modal-backdrop";
+  const url = recoveryUrl();
+  wrap.innerHTML = `
+    <div class="modal-card">
+      <div class="modal-eyebrow">Almanapp · resident keycard</div>
+      <h3>${esc(RESIDENT.avatar)} ${esc(RESIDENT.display_name)}</h3>
+      <p class="modal-lede">This URL is your keycard. Open it on any browser to sign back in as you. Anyone with the link can use your account, so keep it private.</p>
+      <div class="keycard-url">
+        <input type="text" id="kc-url" readonly value="${esc(url)}" />
+        <button class="btn-primary" id="kc-copy">Copy</button>
+      </div>
+      <p class="modal-fineprint">Messages today: ${RESIDENT.rate_limit - RESIDENT.rate_remaining} / ${RESIDENT.rate_limit}</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="kc-signout">Sign out of this browser</button>
+        <button type="button" class="btn-primary" id="kc-close">Done</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const close = () => wrap.remove();
+  wrap.addEventListener("click", e => { if (e.target === wrap) close(); });
+  wrap.querySelector("#kc-close").onclick = close;
+  wrap.querySelector("#kc-copy").onclick = async () => {
+    const inp = wrap.querySelector("#kc-url");
+    inp.select();
+    try {
+      await navigator.clipboard.writeText(inp.value);
+      wrap.querySelector("#kc-copy").textContent = "Copied";
+    } catch {
+      document.execCommand("copy");
+    }
+  };
+  wrap.querySelector("#kc-signout").onclick = () => { close(); signOut(); };
+}
+
+// ─── auth chip in subnav ───
+
+function updateAuthChip() {
+  const chip = document.getElementById("auth-chip");
+  if (!chip) return;
+  if (RESIDENT) {
+    chip.innerHTML = `<span class="chip-avatar">${esc(RESIDENT.avatar)}</span><span class="chip-name">${esc(RESIDENT.display_name)}</span>`;
+    chip.title = "Your resident keycard";
+    chip.onclick = openKeycardModal;
+  } else {
+    chip.innerHTML = `<span class="chip-name">Sign in</span>`;
+    chip.title = "Register a resident profile to DM characters";
+    chip.onclick = openRegisterModal;
+  }
+}
+
 // ─── util ───
 
 function countPostsForEvent(eid) {
@@ -219,6 +512,9 @@ function setMastDate() {
 
 (async () => {
   setMastDate();
+  consumeRecoveryParam();
+  await loadResident();
+  updateAuthChip();
   try {
     await loadSite();
     render();

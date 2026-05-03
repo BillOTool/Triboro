@@ -9,6 +9,7 @@ Triboro Server
 import json
 import os
 import re
+import secrets
 import time
 import uuid
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -22,6 +23,11 @@ EVENTS_FILE = os.path.join(DATA, "events.json")
 POSTS_FILE = os.path.join(DATA, "posts.json")
 WORLD_FILE = os.path.join(DATA, "world.md")
 SITE_FILE = os.path.join(DATA, "site.json")
+RESIDENTS_FILE = os.path.join(DATA, "residents.json")
+CHATS_FILE = os.path.join(DATA, "chats.json")
+
+DAILY_MESSAGE_LIMIT = 50
+HISTORY_TURNS_TO_SEND = 16  # how many recent messages to include in each Gemini call
 
 API_KEY = os.environ.get("GEMINI_API_KEY", "")
 _key_file = os.path.join(ROOT, ".api-key")
@@ -88,6 +94,78 @@ def save_character(cid, raw):
     path = os.path.join(CHARS_DIR, f"{cid}.md")
     with open(path, "w") as f:
         f.write(raw)
+
+
+# ─── residents (auth) ────────────────────────────────────────────────────
+
+def today_str():
+    return time.strftime("%Y-%m-%d", time.gmtime())
+
+def load_residents():
+    return read_json(RESIDENTS_FILE, {"residents": []})
+
+def save_residents(data):
+    write_json(RESIDENTS_FILE, data)
+
+def find_resident_by_token(token):
+    if not token:
+        return None
+    for r in load_residents()["residents"]:
+        if r.get("token") == token:
+            return r
+    return None
+
+def update_resident(updated):
+    data = load_residents()
+    for i, r in enumerate(data["residents"]):
+        if r["id"] == updated["id"]:
+            data["residents"][i] = updated
+            save_residents(data)
+            return updated
+    return None
+
+def consume_rate_limit(resident):
+    """Returns (ok, remaining). Mutates and persists resident."""
+    today = today_str()
+    if resident.get("rate_window") != today:
+        resident["rate_window"] = today
+        resident["rate_count"] = 0
+    if resident["rate_count"] >= DAILY_MESSAGE_LIMIT:
+        return False, 0
+    resident["rate_count"] += 1
+    update_resident(resident)
+    return True, DAILY_MESSAGE_LIMIT - resident["rate_count"]
+
+def public_resident(r):
+    today = today_str()
+    used = r.get("rate_count", 0) if r.get("rate_window") == today else 0
+    return {
+        "id": r["id"],
+        "display_name": r["display_name"],
+        "avatar": r.get("avatar", "👤"),
+        "rate_remaining": max(0, DAILY_MESSAGE_LIMIT - used),
+        "rate_limit": DAILY_MESSAGE_LIMIT,
+    }
+
+
+# ─── chats (per resident × character) ────────────────────────────────────
+
+def chat_key(resident_id, character_id):
+    return f"{resident_id}:{character_id}"
+
+def get_chat_history(resident_id, character_id):
+    return read_json(CHATS_FILE, {"chats": {}})["chats"].get(
+        chat_key(resident_id, character_id), []
+    )
+
+def append_chat_messages(resident_id, character_id, messages):
+    data = read_json(CHATS_FILE, {"chats": {}})
+    key = chat_key(resident_id, character_id)
+    history = data["chats"].get(key, [])
+    history.extend(messages)
+    data["chats"][key] = history
+    write_json(CHATS_FILE, data)
+    return history
 
 
 # ─── public site bundle ──────────────────────────────────────────────────
@@ -205,6 +283,11 @@ def generate_reactions(event, character_ids, n_per_character=1):
 
 class Handler(SimpleHTTPRequestHandler):
 
+    def end_headers(self):
+        # Dev tool: never serve stale assets. Browsers still revalidate (304-able).
+        self.send_header("Cache-Control", "no-cache, must-revalidate")
+        super().end_headers()
+
     def do_OPTIONS(self):
         self.send_response(200)
         self._cors()
@@ -221,6 +304,17 @@ class Handler(SimpleHTTPRequestHandler):
             return {}
         return json.loads(self.rfile.read(length))
 
+    def _bearer_token(self):
+        h = self.headers.get("Authorization", "")
+        return h[7:].strip() if h.startswith("Bearer ") else None
+
+    def _require_resident(self):
+        r = find_resident_by_token(self._bearer_token())
+        if not r:
+            self.send_json({"error": "auth required"}, 401)
+            return None
+        return r
+
     def send_json(self, data, code=200):
         body = json.dumps(data).encode()
         self.send_response(code)
@@ -232,11 +326,17 @@ class Handler(SimpleHTTPRequestHandler):
 
     # routing
     def do_GET(self):
+        if self.path == "/api/me":
+            return self.handle_me()
+        if self.path.startswith("/api/chat/"):
+            return self.handle_chat_history()
         if self.path.startswith("/api/admin/"):
             return self.handle_admin_get()
         return super().do_GET()
 
     def do_POST(self):
+        if self.path == "/api/register":
+            return self.handle_register()
         if self.path == "/api/chat":
             return self.handle_chat()
         if self.path == "/api/set-key":
@@ -292,6 +392,45 @@ class Handler(SimpleHTTPRequestHandler):
             write_json(EVENTS_FILE, data)
             build_site()
             return self.send_json(event)
+        if p == "/api/admin/post":
+            char_id = (body.get("character_id") or "").strip()
+            text = (body.get("text") or "").strip()
+            if not char_id or not text:
+                return self.send_json({"error": "character_id and text required"}, 400)
+            if not get_character(char_id):
+                return self.send_json({"error": "no such character"}, 404)
+            event_id = body.get("event_id") or None
+            if event_id:
+                events = read_json(EVENTS_FILE, {"events": []})["events"]
+                if not any(e["id"] == event_id for e in events):
+                    return self.send_json({"error": "no such event"}, 404)
+            post = {
+                "id": uuid.uuid4().hex[:10],
+                "character_id": char_id,
+                "text": text,
+                "event_id": event_id,
+                "created": int(time.time()),
+                "pinned": bool(body.get("pinned")),
+                "published": bool(body.get("published")),
+            }
+            data = read_json(POSTS_FILE, {"posts": []})
+            data["posts"].insert(0, post)
+            write_json(POSTS_FILE, data)
+            build_site()
+            return self.send_json(post)
+        if p == "/api/admin/character":
+            cid = (body.get("id") or "").strip().lower()
+            if not re.match(r"^[a-z0-9][a-z0-9_]{1,40}$", cid):
+                return self.send_json({"error": "id must be lowercase letters/numbers/underscores, 2-41 chars"}, 400)
+            if os.path.exists(os.path.join(CHARS_DIR, f"{cid}.md")):
+                return self.send_json({"error": "character id already exists"}, 409)
+            raw = (body.get("raw") or "").strip()
+            if not raw:
+                return self.send_json({"error": "raw markdown required"}, 400)
+            os.makedirs(CHARS_DIR, exist_ok=True)
+            save_character(cid, raw)
+            build_site()
+            return self.send_json(get_character(cid))
         if p == "/api/admin/generate":
             event_id = body.get("event_id")
             char_ids = body.get("character_ids", [])
@@ -361,22 +500,94 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json({"ok": True})
         self.send_json({"error": "not found"}, 404)
 
-    # legacy chat (kept for old game.js)
+    # ─── resident auth ───
+    def handle_register(self):
+        body = self._read_body()
+        name = (body.get("display_name") or "").strip()[:40]
+        avatar = (body.get("avatar") or "👤").strip()[:8] or "👤"
+        if not name:
+            return self.send_json({"error": "display_name required"}, 400)
+        resident = {
+            "id": "res_" + secrets.token_hex(8),
+            "display_name": name,
+            "avatar": avatar,
+            "token": secrets.token_urlsafe(24),
+            "created": int(time.time()),
+            "rate_window": today_str(),
+            "rate_count": 0,
+        }
+        data = load_residents()
+        data["residents"].append(resident)
+        save_residents(data)
+        out = public_resident(resident)
+        out["token"] = resident["token"]
+        return self.send_json(out)
+
+    def handle_me(self):
+        r = self._require_resident()
+        if not r:
+            return
+        return self.send_json(public_resident(r))
+
+    def handle_chat_history(self):
+        # GET /api/chat/<character_id>
+        r = self._require_resident()
+        if not r:
+            return
+        cid = self.path.rsplit("/", 1)[-1]
+        return self.send_json({"history": get_chat_history(r["id"], cid)})
+
+    # ─── chat with a character ───
     def handle_chat(self):
         if not API_KEY:
-            return self.send_json({"error": "No API key configured"}, 401)
+            return self.send_json({"error": "No API key configured"}, 500)
+        r = self._require_resident()
+        if not r:
+            return
         body = self._read_body()
-        system_prompt = body.get("system", "")
-        messages = body.get("messages", [])
+        cid = (body.get("character_id") or "").strip()
+        text = (body.get("message") or "").strip()[:1000]
+        if not cid or not text:
+            return self.send_json({"error": "character_id and message required"}, 400)
+        char = get_character(cid)
+        if not char:
+            return self.send_json({"error": "no such resident"}, 404)
+
+        ok, remaining = consume_rate_limit(r)
+        if not ok:
+            return self.send_json(
+                {"error": "Daily message limit reached. Come back tomorrow.",
+                 "rate_remaining": 0}, 429)
+
+        world = build_world_context()
+        char_name = char["meta"].get("name", cid)
+        char_handle = char["meta"].get("handle", "")
+        system = (
+            f"You are {char_name} ({char_handle}), a resident of TRIBORO on the "
+            f"ALMANAPP private DM. You are messaging another resident named "
+            f"\"{r['display_name']}\". Stay fully in character. Reply briefly — "
+            f"usually 1-3 sentences, sometimes a single line. Mundane treated as "
+            f"cosmic, weirdness treated as ordinary. Onion-style. Never break "
+            f"the fourth wall. Never mention being an AI or a model. If asked "
+            f"about the outside world, the cure, or anything you wouldn't know, "
+            f"react in-character (suspicion, dismissal, change of subject).\n\n"
+            f"WORLD:\n{world}\n\n"
+            f"YOUR CHARACTER:\n{char['body']}"
+        )
+
+        history = get_chat_history(r["id"], cid)
+        recent = history[-HISTORY_TURNS_TO_SEND:]
         contents = [
             {"role": "user" if m["role"] == "user" else "model",
-             "parts": [{"text": m["content"]}]}
-            for m in messages
+             "parts": [{"text": m["text"]}]}
+            for m in recent
         ]
+        contents.append({"role": "user", "parts": [{"text": text}]})
+
         payload = json.dumps({
             "contents": contents,
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "generationConfig": {"maxOutputTokens": 350, "temperature": 0.9},
+            "systemInstruction": {"parts": [{"text": system}]},
+            "generationConfig": {"maxOutputTokens": 400, "temperature": 0.95},
         }).encode()
         url = f"{GEMINI_URL}?key={API_KEY}"
         req = Request(url, data=payload, method="POST")
@@ -384,12 +595,19 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             with urlopen(req) as resp:
                 result = json.loads(resp.read())
-                text = result["candidates"][0]["content"]["parts"][0]["text"]
-                self.send_json({"text": text})
+            reply = result["candidates"][0]["content"]["parts"][0]["text"].strip()
         except HTTPError as e:
-            self.send_json({"error": e.read().decode() if hasattr(e, "read") else str(e)}, 500)
+            err = e.read().decode() if hasattr(e, "read") else str(e)
+            return self.send_json({"error": err}, 502)
         except (URLError, KeyError, IndexError) as e:
-            self.send_json({"error": str(e)}, 500)
+            return self.send_json({"error": str(e)}, 502)
+
+        now = int(time.time())
+        append_chat_messages(r["id"], cid, [
+            {"role": "user", "text": text, "ts": now},
+            {"role": "char", "text": reply, "ts": now + 1},
+        ])
+        return self.send_json({"reply": reply, "rate_remaining": remaining})
 
     def handle_set_key(self):
         global API_KEY
