@@ -1,0 +1,31 @@
+name = "triboro-chat"
+main = "src/worker.js"
+compatibility_date = "2026-04-01"
+
+# KV holds residents, chat history, rate-limit counters, and the global daily ceiling.
+# Run once: `wrangler kv namespace create TRIBORO` and paste the id below.
+[[kv_namespaces]]
+binding = "TRIBORO"
+id = "88af387c926d469a94d698943ac796d1"
+
+# Public configuration — safe to commit. Secrets (GEMINI_API_KEY) are set with
+# `wrangler secret put GEMINI_API_KEY` and never appear in this file.
+[vars]
+GEMINI_MODEL = "gemini-2.5-flash"
+
+# Per-IP request budget on /api/chat. Sliding 1-hour window, KV-backed.
+CHAT_PER_IP_PER_HOUR = "20"
+
+# Per-IP register limit so one address can't farm tokens to multiply daily caps.
+REGISTER_PER_IP_PER_DAY = "5"
+
+# Hard daily request ceiling across all users. Hit it and /api/chat starts
+# refusing with 503 until UTC midnight. Cheap insurance against runaway abuse.
+GLOBAL_DAILY_CHAT_LIMIT = "2000"
+
+# Per-resident daily limit (matches server.py).
+DAILY_MESSAGE_LIMIT = "50"
+
+# CORS allowlist — comma-separated origins that may call the chat API.
+# Update after GH Pages goes live (e.g. https://billotool.github.io).
+ALLOWED_ORIGINS = "http://localhost:8080,https://billotool.github.io"

@@ -9,6 +9,12 @@ let RESIDENT = null;  // { id, display_name, avatar, token, rate_remaining, rate
 
 const TOKEN_KEY = "triboro_token";
 
+// Chat endpoints live on a separate Cloudflare Worker in production. Local dev
+// (python3 server.py) leaves TRIBORO_BACKEND undefined, so we fall back to
+// same-origin and hit server.py directly. On GH Pages, index.html sets
+// window.TRIBORO_BACKEND to the workers.dev URL.
+const BACKEND = (typeof window !== "undefined" && window.TRIBORO_BACKEND) || "";
+
 const AVATAR_CHOICES = ["👤","🐸","🦝","🦊","🦉","🐝","🐍","🦴","🪞","🕯️","📻","🧷","🧣","🧶"];
 
 async function loadSite() {
@@ -41,7 +47,7 @@ async function loadResident() {
     return;
   }
   try {
-    const r = await fetch("/api/me", { headers: authHeaders() });
+    const r = await fetch(BACKEND + "/api/me", { headers: authHeaders() });
     if (!r.ok) {
       localStorage.removeItem(TOKEN_KEY);
       RESIDENT = null;
@@ -63,7 +69,7 @@ function recoveryUrl() {
 }
 
 async function registerResident(name, avatar) {
-  const r = await fetch("/api/register", {
+  const r = await fetch(BACKEND + "/api/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ display_name: name, avatar }),
@@ -307,7 +313,7 @@ async function openChatFor(charId) {
 
   // load history
   try {
-    const r = await fetch("/api/chat/" + encodeURIComponent(charId), { headers: authHeaders() });
+    const r = await fetch(BACKEND + "/api/chat/" + encodeURIComponent(charId), { headers: authHeaders() });
     const data = await r.json();
     renderChatHistory(data.history || []);
   } catch {
@@ -347,7 +353,7 @@ async function sendChatMessage(charId) {
   body.scrollTop = body.scrollHeight;
 
   try {
-    const r = await fetch("/api/chat", {
+    const r = await fetch(BACKEND + "/api/chat", {
       method: "POST",
       headers: { ...authHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({ character_id: charId, message: text }),

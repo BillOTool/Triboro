@@ -35,6 +35,12 @@
     <div class="muted">All posts in-world fiction. No residents were stuck in real elevators.</div>
   </footer>
 
+  <!-- On GitHub Pages, set this to the Worker URL printed by `wrangler deploy`,
+       e.g. https://triboro-chat.<account>.workers.dev. Leaving it unset (or
+       commented out) makes feed.js call same-origin, which is what local dev
+       wants when running python3 server.py. -->
+  <script>window.TRIBORO_BACKEND = "https://triboro-chat.billotoole.workers.dev";</script>
+
   <script src="feed.js"></script>
 </body>
 </html>

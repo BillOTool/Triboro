@@ -1,0 +1,14 @@
+{
+  "name": "triboro-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:data": "node build-data.mjs",
+    "dev": "npm run build:data && wrangler dev",
+    "deploy": "npm run build:data && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.80.0"
+  }
+}
