@@ -11,6 +11,7 @@
     <nav>
       <button type="button" data-tab="events" class="active">Events</button>
       <button type="button" data-tab="posts">Posts</button>
+      <button type="button" data-tab="stories">Stories</button>
       <button type="button" data-tab="characters">Characters</button>
       <button type="button" data-tab="world">World</button>
     </nav>
@@ -131,6 +132,80 @@
         </div>
 
         <ul id="posts-list" class="list posts"></ul>
+      </div>
+    </section>
+
+    <!-- ── STORIES ─────────────────────────────── -->
+    <section id="tab-stories" class="tab">
+      <div class="col">
+        <h2>New story</h2>
+        <p class="hint">A story is an ordered sequence of events that tells a narrative thread. Events themselves stay independent — an event can belong to multiple stories or none. When you "schedule" a story, its events are laid out in that order and their reactions cascade beneath each one.</p>
+        <input id="story-title" placeholder="Mr. Pibbs and the Floor 41 secret">
+        <textarea id="story-desc" rows="2" placeholder="(optional) what this story is about"></textarea>
+        <div class="row">
+          <button type="button" id="btn-add-story" class="primary">Create story</button>
+          <span id="story-create-status" class="status"></span>
+        </div>
+
+        <h2 style="margin-top:24px;">Stories</h2>
+        <ul id="stories-list" class="list"></ul>
+      </div>
+
+      <div class="col wide">
+        <h2 id="story-editor-title">Pick a story</h2>
+        <div id="story-editor" style="display:none;">
+          <div class="row">
+            <label>title <input type="text" id="story-edit-title" style="flex:1;min-width:240px;"></label>
+          </div>
+          <div class="row">
+            <label style="flex:1;">description
+              <textarea id="story-edit-desc" rows="2" style="width:100%;"></textarea>
+            </label>
+          </div>
+          <div class="row">
+            <button type="button" id="btn-save-story">Save title/description</button>
+            <button type="button" id="btn-delete-story" class="danger">Delete story</button>
+            <span id="story-edit-status" class="status"></span>
+          </div>
+
+          <h3 style="margin-top:18px;">Events in this story (in order)</h3>
+          <p class="hint">Top of the list lands first in viewer-time. Drag with the ↑/↓ buttons.</p>
+          <ul id="story-events-list" class="list story-events"></ul>
+
+          <div class="row">
+            <select id="story-add-event-picker"><option value="">— pick an event to add —</option></select>
+            <button type="button" id="btn-add-event-to-story">Add to story</button>
+          </div>
+
+          <h3 style="margin-top:18px;">Schedule this story</h3>
+          <div class="row">
+            <label>new event every:
+              <select id="story-sched-event-interval">
+                <option value="3">~3s</option>
+                <option value="5">~5s</option>
+                <option value="11" selected>~10-12s</option>
+                <option value="20">~20s</option>
+                <option value="30">~30s</option>
+                <option value="60">~1m</option>
+                <option value="300">~5m</option>
+              </select>
+            </label>
+            <label>new comment every:
+              <select id="story-sched-post-interval">
+                <option value="1">~1s</option>
+                <option value="2">~2s</option>
+                <option value="3" selected>~3s</option>
+                <option value="5">~5s</option>
+                <option value="10">~10s</option>
+              </select>
+            </label>
+            <label>start at: <input type="number" id="story-sched-start" min="0" value="0" style="width:70px"> sec</label>
+            <label><input type="checkbox" id="story-sched-jitter" checked> jitter</label>
+            <label><input type="checkbox" id="story-sched-publish" checked> publish</label>
+            <button type="button" id="btn-schedule-story" class="primary">Schedule story</button>
+            <span id="story-sched-status" class="status"></span>
+          </div>
+        </div>
       </div>
     </section>
 

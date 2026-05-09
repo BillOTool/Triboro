@@ -4,7 +4,9 @@ const state = {
   characters: [],
   events: [],
   posts: [],
+  stories: [],
   selectedChar: null,
+  selectedStoryId: null,
   isNewChar: false,
 };
 
@@ -50,6 +52,7 @@ document.querySelectorAll("nav button").forEach(b => {
     if (b.dataset.tab === "world") loadWorld();
     if (b.dataset.tab === "posts") { renderPosts(); refreshNewPostPickers(); }
     if (b.dataset.tab === "events") renderEvents();
+    if (b.dataset.tab === "stories") { loadStories().then(renderStories); }
   };
 });
 
@@ -575,6 +578,212 @@ document.getElementById("btn-add-post").onclick = async () => {
   }
 };
 
+// ─── stories ───
+
+async function loadStories() {
+  const data = await api("/stories");
+  state.stories = data.stories || [];
+}
+
+function renderStories() {
+  const list = document.getElementById("stories-list");
+  list.innerHTML = "";
+  if (!state.stories.length) {
+    const li = document.createElement("li");
+    li.className = "empty-filter";
+    li.textContent = "No stories yet. Make one above to start organizing events into a thread.";
+    list.appendChild(li);
+  } else {
+    for (const s of state.stories) {
+      const li = document.createElement("li");
+      li.dataset.id = s.id;
+      if (s.id === state.selectedStoryId) li.classList.add("selected");
+      const count = (s.event_ids || []).length;
+      li.innerHTML = `<div><strong>${escapeHtml(s.title)}</strong></div>
+        <div class="meta">${count} event${count === 1 ? "" : "s"}${s.description ? " · " + escapeHtml(truncate(s.description, 60)) : ""}</div>`;
+      li.onclick = () => selectStory(s.id);
+      list.appendChild(li);
+    }
+  }
+  // If a story is selected, render the editor pane for it.
+  if (state.selectedStoryId) {
+    renderStoryEditor();
+  } else {
+    document.getElementById("story-editor").style.display = "none";
+    document.getElementById("story-editor-title").textContent = "Pick a story";
+  }
+}
+
+function selectStory(sid) {
+  state.selectedStoryId = sid;
+  renderStories();
+}
+
+function currentStory() {
+  return state.stories.find(s => s.id === state.selectedStoryId) || null;
+}
+
+function renderStoryEditor() {
+  const s = currentStory();
+  if (!s) {
+    document.getElementById("story-editor").style.display = "none";
+    return;
+  }
+  document.getElementById("story-editor").style.display = "";
+  document.getElementById("story-editor-title").textContent = s.title;
+  document.getElementById("story-edit-title").value = s.title;
+  document.getElementById("story-edit-desc").value = s.description || "";
+
+  const eventsById = Object.fromEntries(state.events.map(e => [e.id, e]));
+  const list = document.getElementById("story-events-list");
+  list.innerHTML = "";
+  const eids = s.event_ids || [];
+  if (!eids.length) {
+    const li = document.createElement("li");
+    li.className = "empty-filter";
+    li.textContent = "No events yet. Add one with the picker below.";
+    list.appendChild(li);
+  } else {
+    eids.forEach((eid, idx) => {
+      const ev = eventsById[eid];
+      const title = ev ? ev.title : `(missing event ${eid})`;
+      const li = document.createElement("li");
+      li.innerHTML = `<div><strong>${idx + 1}.</strong> ${escapeHtml(title)}</div>
+        <div class="post-actions">
+          <button data-act="up" data-id="${eid}" ${idx === 0 ? "disabled" : ""}>↑</button>
+          <button data-act="down" data-id="${eid}" ${idx === eids.length - 1 ? "disabled" : ""}>↓</button>
+          <button data-act="remove" data-id="${eid}" class="danger">remove</button>
+        </div>`;
+      list.appendChild(li);
+    });
+  }
+  list.onclick = handleStoryEventAction;
+
+  // Event picker for adding — show all events not already in story.
+  const inStory = new Set(eids);
+  const picker = document.getElementById("story-add-event-picker");
+  picker.innerHTML = `<option value="">— pick an event to add —</option>` +
+    state.events
+      .filter(e => !inStory.has(e.id))
+      .map(e => `<option value="${e.id}">${escapeHtml(truncate(e.title, 60))}</option>`)
+      .join("");
+}
+
+async function handleStoryEventAction(ev) {
+  const btn = ev.target.closest("button[data-act]");
+  if (!btn) return;
+  const eid = btn.dataset.id;
+  const s = currentStory();
+  if (!s) return;
+  const eids = [...(s.event_ids || [])];
+  const i = eids.indexOf(eid);
+  if (i < 0) return;
+  if (btn.dataset.act === "up" && i > 0) {
+    [eids[i - 1], eids[i]] = [eids[i], eids[i - 1]];
+  } else if (btn.dataset.act === "down" && i < eids.length - 1) {
+    [eids[i + 1], eids[i]] = [eids[i], eids[i + 1]];
+  } else if (btn.dataset.act === "remove") {
+    eids.splice(i, 1);
+  } else return;
+  await api("/story/" + s.id, { method: "PUT", body: { event_ids: eids } });
+  await loadStories();
+  renderStories();
+}
+
+document.getElementById("btn-add-story").onclick = async () => {
+  const status = document.getElementById("story-create-status");
+  const title = document.getElementById("story-title").value.trim();
+  const description = document.getElementById("story-desc").value.trim();
+  if (!title) { status.textContent = "title required"; status.className = "status err"; return; }
+  status.textContent = "creating..."; status.className = "status";
+  try {
+    const s = await api("/story", { method: "POST", body: { title, description, event_ids: [] } });
+    document.getElementById("story-title").value = "";
+    document.getElementById("story-desc").value = "";
+    status.textContent = "created"; status.className = "status ok";
+    state.selectedStoryId = s.id;
+    await loadStories();
+    renderStories();
+  } catch (e) {
+    status.textContent = "error: " + e.message; status.className = "status err";
+  }
+};
+
+document.getElementById("btn-save-story").onclick = async () => {
+  const s = currentStory();
+  if (!s) return;
+  const status = document.getElementById("story-edit-status");
+  const title = document.getElementById("story-edit-title").value.trim();
+  const description = document.getElementById("story-edit-desc").value.trim();
+  if (!title) { status.textContent = "title required"; status.className = "status err"; return; }
+  status.textContent = "saving..."; status.className = "status";
+  try {
+    await api("/story/" + s.id, { method: "PUT", body: { title, description } });
+    status.textContent = "saved"; status.className = "status ok";
+    await loadStories();
+    renderStories();
+  } catch (e) {
+    status.textContent = "error: " + e.message; status.className = "status err";
+  }
+};
+
+document.getElementById("btn-delete-story").onclick = async () => {
+  const s = currentStory();
+  if (!s) return;
+  if (!confirm(`Delete story "${s.title}"? Events themselves stay.`)) return;
+  await api("/story/" + s.id, { method: "DELETE" });
+  state.selectedStoryId = null;
+  await loadStories();
+  renderStories();
+};
+
+document.getElementById("btn-add-event-to-story").onclick = async () => {
+  const s = currentStory();
+  if (!s) return;
+  const picker = document.getElementById("story-add-event-picker");
+  const eid = picker.value;
+  if (!eid) return;
+  const eids = [...(s.event_ids || []), eid];
+  await api("/story/" + s.id, { method: "PUT", body: { event_ids: eids } });
+  await loadStories();
+  renderStories();
+};
+
+document.getElementById("btn-schedule-story").onclick = async () => {
+  const s = currentStory();
+  if (!s) return;
+  const status = document.getElementById("story-sched-status");
+  if (!(s.event_ids || []).length) {
+    status.textContent = "story has no events"; status.className = "status err"; return;
+  }
+  const eventInterval = parseInt(document.getElementById("story-sched-event-interval").value, 10);
+  const postInterval = parseInt(document.getElementById("story-sched-post-interval").value, 10);
+  const start = parseInt(document.getElementById("story-sched-start").value, 10) || 0;
+  const jitter = document.getElementById("story-sched-jitter").checked;
+  const auto_publish = document.getElementById("story-sched-publish").checked;
+  status.textContent = "scheduling..."; status.className = "status";
+  try {
+    const r = await api("/schedule", {
+      method: "POST",
+      body: {
+        scope: "all",
+        event_ids: s.event_ids,
+        event_interval_seconds: eventInterval,
+        post_interval_seconds: postInterval,
+        start_offset: start,
+        jitter,
+        auto_publish,
+      },
+    });
+    status.textContent = `scheduled ${r.scheduled} posts across ${(s.event_ids || []).length} events${auto_publish ? " · published" : ""}`;
+    status.className = "status ok";
+    await loadEvents();
+    await loadPosts();
+  } catch (e) {
+    status.textContent = "error: " + e.message; status.className = "status err";
+  }
+};
+
 // ─── world ───
 async function loadWorld() {
   const data = await api("/world");
@@ -593,6 +802,7 @@ function escapeHtml(s) {
   await loadCharacters();
   await loadEvents();
   await loadPosts();
+  await loadStories();
   renderEvents();
   refreshNewPostPickers();
 })();

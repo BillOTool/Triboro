@@ -176,6 +176,20 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .schedule-bar .hint { margin-top: 0; }
 .schedule-bar select { padding: 4px 6px; }
 
+#stories-list li { cursor: pointer; }
+#stories-list li.selected {
+  border-left: 3px solid var(--accent);
+  background: rgba(255, 255, 255, 0.04);
+}
+.story-events li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.story-events .post-actions { font-size: 12px; }
+.story-events .post-actions button { padding: 2px 6px; font-size: 12px; }
+
 pre { white-space: pre-wrap; background: var(--bg); padding: 16px; border-radius: 4px; font-size: 13px; }
 
 code { background: var(--bg); padding: 2px 6px; border-radius: 3px; font-size: 12px; }

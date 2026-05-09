@@ -26,6 +26,7 @@ WORLD_FILE = os.path.join(DATA, "world.md")
 SITE_FILE = os.path.join(DATA, "site.json")
 RESIDENTS_FILE = os.path.join(DATA, "residents.json")
 CHATS_FILE = os.path.join(DATA, "chats.json")
+STORIES_FILE = os.path.join(DATA, "stories.json")
 QUEUE_STATE_FILE = os.path.join(DATA, "queue_state.json")
 
 DAILY_MESSAGE_LIMIT = 50
@@ -206,6 +207,25 @@ def migrate_event(e):
 
 def normalize_events(events):
     return [migrate_event(e) for e in events]
+
+
+# ─── stories ─────────────────────────────────────────────────────────────
+# A story is just an ordered list of event_ids — a way to organize events
+# into narrative threads. Events themselves are unchanged; an event can
+# appear in multiple stories or none. Stories live in data/stories.json
+# and don't ship to the public site bundle (yet — authoring tool only).
+
+def read_stories():
+    return read_json(STORIES_FILE, {"stories": []})
+
+def write_stories(data):
+    write_json(STORIES_FILE, data)
+
+def find_story(stories, sid):
+    for s in stories:
+        if s["id"] == sid:
+            return s
+    return None
 
 def publish_sort_key(p):
     return p.get("publish_at") or p.get("created") or 0
@@ -495,6 +515,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(read_json(EVENTS_FILE, {"events": []}))
         if p == "/api/admin/posts":
             return self.send_json(read_json(POSTS_FILE, {"posts": []}))
+        if p == "/api/admin/stories":
+            return self.send_json(read_stories())
         self.send_json({"error": "not found"}, 404)
 
     # admin: POST
@@ -543,6 +565,25 @@ class Handler(SimpleHTTPRequestHandler):
             write_json(POSTS_FILE, data)
             build_site()
             return self.send_json(post)
+        if p == "/api/admin/story":
+            title = (body.get("title") or "").strip()
+            if not title:
+                return self.send_json({"error": "title required"}, 400)
+            description = (body.get("description") or "").strip()
+            event_ids = body.get("event_ids") or []
+            if not isinstance(event_ids, list):
+                return self.send_json({"error": "event_ids must be a list"}, 400)
+            data = read_stories()
+            story = {
+                "id": uuid.uuid4().hex[:10],
+                "title": title,
+                "description": description,
+                "event_ids": [str(x) for x in event_ids],
+                "created": int(time.time()),
+            }
+            data["stories"].insert(0, story)
+            write_stories(data)
+            return self.send_json(story)
         if p == "/api/admin/character":
             cid = (body.get("id") or "").strip().lower()
             if not re.match(r"^[a-z0-9][a-z0-9_]{1,40}$", cid):
@@ -583,10 +624,31 @@ class Handler(SimpleHTTPRequestHandler):
             ev_int = max(1, int(event_interval))
             ps_int = max(1, int(post_interval))
 
+            # Optional ordered list of event_ids — when present, only those
+            # events (in that order) are touched. This is how a Story tells
+            # the scheduler to lay its events out narratively.
+            ordered_event_ids = body.get("event_ids")
+            if ordered_event_ids is not None and not isinstance(ordered_event_ids, list):
+                return self.send_json({"error": "event_ids must be a list"}, 400)
+
             data = read_json(POSTS_FILE, {"posts": []})
             posts = normalize_posts(data["posts"])
             evdata = read_json(EVENTS_FILE, {"events": []})
             events = normalize_events(evdata["events"])
+
+            # Decide which events to lay out, and in what order.
+            if ordered_event_ids:
+                events_in_play = []
+                for eid in ordered_event_ids:
+                    ev = next((e for e in events if e["id"] == eid), None)
+                    if ev:
+                        events_in_play.append(ev)
+                if not events_in_play:
+                    return self.send_json({"error": "no events matched event_ids"}, 400)
+                limit_to_event_ids = {e["id"] for e in events_in_play}
+            else:
+                events_in_play = sorted(events, key=lambda e: e.get("created", 0))
+                limit_to_event_ids = None  # touch posts in any event
 
             if isinstance(scope, list):
                 target_ids = set(scope)
@@ -597,7 +659,13 @@ class Handler(SimpleHTTPRequestHandler):
             else:  # "unpublished" / default
                 target_ids = {p["id"] for p in posts if p["status"] != "published"}
 
-            if not target_ids:
+            if limit_to_event_ids is not None:
+                target_ids = {
+                    pid for pid in target_ids
+                    if any(p["id"] == pid and p.get("event_id") in limit_to_event_ids for p in posts)
+                }
+
+            if not target_ids and not events_in_play:
                 return self.send_json({"error": "no posts matched scope"}, 400)
 
             def _jit(step):
@@ -605,18 +673,17 @@ class Handler(SimpleHTTPRequestHandler):
 
             now_ts = int(time.time())
 
-            # Layout step 1: events on their own cadence, oldest first.
-            events.sort(key=lambda e: e.get("created", 0))
+            # Layout step 1: events on their own cadence, in the chosen order.
             event_offset_map = {}
-            for i, ev in enumerate(events):
+            for i, ev in enumerate(events_in_play):
                 base = start + i * ev_int + _jit(ev_int)
                 ev["triboro_offset"] = max(0, int(base))
                 event_offset_map[ev["id"]] = ev["triboro_offset"]
 
             # Layout step 2: reactions on their own cadence, anchored to their
-            # event's offset. Posts not in scope keep their old offset.
+            # event's offset. Posts not in target keep their old offset.
             scheduled = 0
-            for ev in events:
+            for ev in events_in_play:
                 ev_posts = sorted(
                     [p for p in posts if p.get("event_id") == ev["id"]],
                     key=lambda p: p.get("created", 0),
@@ -634,22 +701,24 @@ class Handler(SimpleHTTPRequestHandler):
                         post.setdefault("publish_at", now_ts)
                     scheduled += 1
 
-            # Loose chatter (no event) lands after the last event in viewer-time.
-            loose = sorted(
-                [p for p in posts if not p.get("event_id")],
-                key=lambda p: p.get("created", 0),
-            )
-            loose_base = (max(event_offset_map.values()) + ev_int) if event_offset_map else start
-            for j, post in enumerate(loose):
-                if post["id"] not in target_ids:
-                    continue
-                offset = loose_base + j * ps_int + _jit(ps_int)
-                post["triboro_offset"] = max(0, int(offset))
-                if auto_publish:
-                    post["status"] = "published"
-                    post["published"] = True
-                    post.setdefault("publish_at", now_ts)
-                scheduled += 1
+            # Loose chatter (no event) lands after the last event in
+            # viewer-time. Skipped entirely when scheduling a story.
+            if limit_to_event_ids is None:
+                loose = sorted(
+                    [p for p in posts if not p.get("event_id")],
+                    key=lambda p: p.get("created", 0),
+                )
+                loose_base = (max(event_offset_map.values()) + ev_int) if event_offset_map else start
+                for j, post in enumerate(loose):
+                    if post["id"] not in target_ids:
+                        continue
+                    offset = loose_base + j * ps_int + _jit(ps_int)
+                    post["triboro_offset"] = max(0, int(offset))
+                    if auto_publish:
+                        post["status"] = "published"
+                        post["published"] = True
+                        post.setdefault("publish_at", now_ts)
+                    scheduled += 1
 
             evdata["events"] = events
             write_json(EVENTS_FILE, evdata)
@@ -727,6 +796,26 @@ class Handler(SimpleHTTPRequestHandler):
                     build_site()
                     return self.send_json(event)
             return self.send_json({"error": "not found"}, 404)
+        if p.startswith("/api/admin/story/"):
+            sid = p.rsplit("/", 1)[-1]
+            data = read_stories()
+            story = find_story(data["stories"], sid)
+            if not story:
+                return self.send_json({"error": "not found"}, 404)
+            if "title" in body:
+                t = (body["title"] or "").strip()
+                if not t:
+                    return self.send_json({"error": "title required"}, 400)
+                story["title"] = t
+            if "description" in body:
+                story["description"] = (body["description"] or "").strip()
+            if "event_ids" in body:
+                eids = body["event_ids"]
+                if not isinstance(eids, list):
+                    return self.send_json({"error": "event_ids must be a list"}, 400)
+                story["event_ids"] = [str(x) for x in eids]
+            write_stories(data)
+            return self.send_json(story)
         self.send_json({"error": "not found"}, 404)
 
     # admin: DELETE
@@ -744,7 +833,22 @@ class Handler(SimpleHTTPRequestHandler):
             data = read_json(EVENTS_FILE, {"events": []})
             data["events"] = [x for x in data["events"] if x["id"] != eid]
             write_json(EVENTS_FILE, data)
+            # Drop the deleted event from any story that references it.
+            sd = read_stories()
+            changed = False
+            for s in sd["stories"]:
+                if eid in s.get("event_ids", []):
+                    s["event_ids"] = [x for x in s["event_ids"] if x != eid]
+                    changed = True
+            if changed:
+                write_stories(sd)
             build_site()
+            return self.send_json({"ok": True})
+        if p.startswith("/api/admin/story/"):
+            sid = p.rsplit("/", 1)[-1]
+            data = read_stories()
+            data["stories"] = [s for s in data["stories"] if s["id"] != sid]
+            write_stories(data)
             return self.send_json({"ok": True})
         self.send_json({"error": "not found"}, 404)
 

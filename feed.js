@@ -385,8 +385,10 @@ function renderAbout() {
 
 function eventBlockHtml(e, posts) {
   const list = posts.map(p => postHtml(p)).join("");
+  let cls = "event";
+  if (!_seenIds.has(e.id)) cls += " event-arriving";
   return `
-    <div class="event">
+    <div class="${cls}" data-event-id="${esc(e.id)}">
       <h2 class="event-headline"><a href="#/e/${e.id}">${esc(e.title)}</a></h2>
       ${e.description ? `<p class="event-dek">${esc(e.description)}</p>` : ""}
       <div class="event-meta">${formatDate(e.created)} · ${posts.length} reactions</div>
