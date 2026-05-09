@@ -390,17 +390,23 @@ function humanDuration(seconds) {
 document.getElementById("btn-schedule").onclick = async () => {
   const status = document.getElementById("sched-status");
   const scope = document.getElementById("sched-scope").value;
-  const interval = parseInt(document.getElementById("sched-interval").value, 10);
+  const eventInterval = parseInt(document.getElementById("sched-event-interval").value, 10);
+  const postInterval = parseInt(document.getElementById("sched-post-interval").value, 10);
   const jitter = document.getElementById("sched-jitter").checked;
   const auto_publish = document.getElementById("sched-publish").checked;
   status.textContent = "scheduling..."; status.className = "status";
   try {
     const r = await api("/schedule", {
       method: "POST",
-      body: { scope, interval_seconds: interval, jitter, include_events: true, auto_publish },
+      body: {
+        scope,
+        event_interval_seconds: eventInterval,
+        post_interval_seconds: postInterval,
+        jitter,
+        auto_publish,
+      },
     });
-    const total = (r.scheduled || 0) * interval;
-    status.textContent = `spread ${r.scheduled} posts every ~${interval}s · covers ${humanDuration(total)}${auto_publish ? " · published" : ""}`;
+    status.textContent = `spread ${r.scheduled} · events every ~${eventInterval}s · comments every ~${postInterval}s${auto_publish ? " · published" : ""}`;
     status.className = "status ok";
     await loadPosts();
     await loadEvents();

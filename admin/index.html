@@ -88,26 +88,39 @@
 
         <div class="schedule-bar">
           <h3>Schedule across viewer-time</h3>
-          <p class="hint">Each viewer's "Day 1" begins when they first open the page. Pick the cadence you want posts to appear at — a short interval (10-30s) feels like a live feed for casual visitors; longer intervals (hours/days) work for marathon-style storytelling.</p>
+          <p class="hint">Each viewer's "Day 1" begins when they first open the page. Events run on one cadence (when each new headline drops); reactions run on another (how fast comments spill out under each headline). Tighter intervals = Twitch-stream feel; longer = marathon-storytelling.</p>
           <div class="row">
             <label>Spread:
               <select id="sched-scope">
                 <option value="unpublished">unpublished posts</option>
                 <option value="published">published posts</option>
-                <option value="all">all posts</option>
+                <option value="all" selected>all posts</option>
               </select>
             </label>
-            <label>at interval:
-              <select id="sched-interval">
-                <option value="10">~10 seconds</option>
-                <option value="15" selected>~15 seconds</option>
-                <option value="30">~30 seconds</option>
-                <option value="60">~1 minute</option>
-                <option value="300">~5 minutes</option>
-                <option value="900">~15 minutes</option>
-                <option value="3600">~1 hour</option>
-                <option value="14400">~4 hours</option>
-                <option value="86400">~1 day</option>
+            <label>new event every:
+              <select id="sched-event-interval">
+                <option value="3">~3s</option>
+                <option value="5">~5s</option>
+                <option value="11" selected>~10-12s</option>
+                <option value="20">~20s</option>
+                <option value="30">~30s</option>
+                <option value="60">~1m</option>
+                <option value="300">~5m</option>
+                <option value="900">~15m</option>
+                <option value="3600">~1h</option>
+                <option value="86400">~1d</option>
+              </select>
+            </label>
+            <label>new comment every:
+              <select id="sched-post-interval">
+                <option value="1">~1s</option>
+                <option value="2">~2s</option>
+                <option value="3" selected>~3s</option>
+                <option value="5">~5s</option>
+                <option value="10">~10s</option>
+                <option value="30">~30s</option>
+                <option value="60">~1m</option>
+                <option value="300">~5m</option>
               </select>
             </label>
             <label><input type="checkbox" id="sched-jitter" checked> jitter</label>

@@ -557,92 +557,109 @@ class Handler(SimpleHTTPRequestHandler):
             build_site()
             return self.send_json(get_character(cid))
         if p == "/api/admin/schedule":
-            # Spread a set of posts (and optionally their parent events) across
-            # a window of viewer-time. Body:
-            #   scope:           "unpublished" | "all" | "published" | list of ids
-            #   interval_seconds: gap between consecutive posts (overrides duration)
-            #   duration_seconds: total window length (used if interval not set)
-            #   start_offset:     where in viewer-time the window begins (default 0)
-            #   include_events:   also stagger the events those posts belong to
-            #   jitter:           ±10% random nudge so posts don't land on round numbers
-            #   auto_publish:     also flip the targeted posts to status=published
+            # Lay out events and their reactions across viewer-time. Body:
+            #   scope:                  "unpublished" | "all" | "published" | list of ids
+            #   event_interval_seconds: gap between consecutive event headlines
+            #   post_interval_seconds:  gap between reactions inside the same event
+            #   interval_seconds:       fallback if either of the two above is missing
+            #   start_offset:           where in viewer-time the window begins (default 0)
+            #   jitter:                 ±10% random nudge so things don't land on round numbers
+            #   auto_publish:           flip targeted posts to status=published
+            #
+            # Older events get earlier offsets (older=reaches the viewer first);
+            # newer events get later offsets (= they sort on top of the feed).
+            # Reactions overlap because event N+1 typically lands while event
+            # N is still trickling out reactions — exactly the chat-stream feel.
             scope = body.get("scope", "unpublished")
             interval = body.get("interval_seconds")
-            duration = max(0, int(body.get("duration_seconds") or 0))
+            event_interval = body.get("event_interval_seconds", interval)
+            post_interval = body.get("post_interval_seconds", interval)
             start = max(0, int(body.get("start_offset") or 0))
-            include_events = bool(body.get("include_events", True))
             jitter = bool(body.get("jitter", True))
             auto_publish = bool(body.get("auto_publish", False))
 
+            if event_interval is None or post_interval is None:
+                return self.send_json({"error": "interval_seconds (or both event/post interval) required"}, 400)
+            ev_int = max(1, int(event_interval))
+            ps_int = max(1, int(post_interval))
+
             data = read_json(POSTS_FILE, {"posts": []})
             posts = normalize_posts(data["posts"])
+            evdata = read_json(EVENTS_FILE, {"events": []})
+            events = normalize_events(evdata["events"])
+
             if isinstance(scope, list):
                 target_ids = set(scope)
-                targets = [p for p in posts if p["id"] in target_ids]
             elif scope == "all":
-                targets = list(posts)
+                target_ids = {p["id"] for p in posts}
             elif scope == "published":
-                targets = [p for p in posts if p["status"] == "published"]
+                target_ids = {p["id"] for p in posts if p["status"] == "published"}
             else:  # "unpublished" / default
-                targets = [p for p in posts if p["status"] != "published"]
+                target_ids = {p["id"] for p in posts if p["status"] != "published"}
 
-            if not targets:
+            if not target_ids:
                 return self.send_json({"error": "no posts matched scope"}, 400)
 
-            # Order targets so older events get earlier offsets (= reach a
-            # viewer first) and newer events get later offsets (= appear on
-            # top of the feed once they arrive). Within an event, sort by
-            # post creation time. Posts with no event use their own created.
-            events_for_order = read_json(EVENTS_FILE, {"events": []}).get("events", [])
-            event_created = {e["id"]: e.get("created", 0) for e in events_for_order}
-            def _sort_key(p):
-                eid = p.get("event_id")
-                anchor = event_created.get(eid, p.get("created", 0)) if eid else p.get("created", 0)
-                return (anchor, p.get("created", 0))
-            targets.sort(key=_sort_key)
-            n = len(targets)
-            if interval is not None:
-                step = max(1, int(interval))
-            else:
-                step = (duration / n) if n > 0 else 0
+            def _jit(step):
+                return random.uniform(-step * 0.1, step * 0.1) if jitter else 0
+
             now_ts = int(time.time())
-            for i, post in enumerate(targets):
-                base = start + step * i
-                if jitter and step > 0:
-                    base += random.uniform(-step * 0.1, step * 0.1)
-                post["triboro_offset"] = int(max(0, base))
+
+            # Layout step 1: events on their own cadence, oldest first.
+            events.sort(key=lambda e: e.get("created", 0))
+            event_offset_map = {}
+            for i, ev in enumerate(events):
+                base = start + i * ev_int + _jit(ev_int)
+                ev["triboro_offset"] = max(0, int(base))
+                event_offset_map[ev["id"]] = ev["triboro_offset"]
+
+            # Layout step 2: reactions on their own cadence, anchored to their
+            # event's offset. Posts not in scope keep their old offset.
+            scheduled = 0
+            for ev in events:
+                ev_posts = sorted(
+                    [p for p in posts if p.get("event_id") == ev["id"]],
+                    key=lambda p: p.get("created", 0),
+                )
+                base = event_offset_map[ev["id"]]
+                for j, post in enumerate(ev_posts):
+                    if post["id"] not in target_ids:
+                        continue
+                    offset = base + j * ps_int + _jit(ps_int)
+                    # Reactions never appear before their parent event.
+                    post["triboro_offset"] = max(base, int(offset))
+                    if auto_publish:
+                        post["status"] = "published"
+                        post["published"] = True
+                        post.setdefault("publish_at", now_ts)
+                    scheduled += 1
+
+            # Loose chatter (no event) lands after the last event in viewer-time.
+            loose = sorted(
+                [p for p in posts if not p.get("event_id")],
+                key=lambda p: p.get("created", 0),
+            )
+            loose_base = (max(event_offset_map.values()) + ev_int) if event_offset_map else start
+            for j, post in enumerate(loose):
+                if post["id"] not in target_ids:
+                    continue
+                offset = loose_base + j * ps_int + _jit(ps_int)
+                post["triboro_offset"] = max(0, int(offset))
                 if auto_publish:
                     post["status"] = "published"
                     post["published"] = True
                     post.setdefault("publish_at", now_ts)
+                scheduled += 1
 
-            if include_events:
-                evdata = read_json(EVENTS_FILE, {"events": []})
-                events = normalize_events(evdata["events"])
-                # Each event picks up the offset of its earliest post — but
-                # we look at ALL posts in the event, not just the ones we
-                # just spread. Otherwise re-scheduling a stray draft can
-                # bump an event past its already-published reactions.
-                event_offsets = {}
-                for post in posts:
-                    eid = post.get("event_id")
-                    if not eid:
-                        continue
-                    cur = event_offsets.get(eid)
-                    if cur is None or post["triboro_offset"] < cur:
-                        event_offsets[eid] = post["triboro_offset"]
-                for ev in events:
-                    if ev["id"] in event_offsets:
-                        ev["triboro_offset"] = event_offsets[ev["id"]]
-                evdata["events"] = events
-                write_json(EVENTS_FILE, evdata)
-
+            evdata["events"] = events
+            write_json(EVENTS_FILE, evdata)
             data["posts"] = posts
             write_json(POSTS_FILE, data)
             build_site()
             return self.send_json({
-                "scheduled": n,
-                "duration_seconds": duration,
+                "scheduled": scheduled,
+                "event_interval_seconds": ev_int,
+                "post_interval_seconds": ps_int,
                 "start_offset": start,
             })
         if p == "/api/admin/generate":

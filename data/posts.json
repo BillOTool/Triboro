@@ -8,7 +8,7 @@
       "created": 1778344688,
       "pinned": false,
       "published": true,
-      "triboro_offset": 179,
+      "triboro_offset": 35,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -20,7 +20,7 @@
       "created": 1778344688,
       "pinned": false,
       "published": true,
-      "triboro_offset": 194,
+      "triboro_offset": 38,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -32,7 +32,7 @@
       "created": 1778344688,
       "pinned": false,
       "published": true,
-      "triboro_offset": 211,
+      "triboro_offset": 42,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -44,7 +44,7 @@
       "created": 1778344688,
       "pinned": false,
       "published": true,
-      "triboro_offset": 223,
+      "triboro_offset": 44,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -56,7 +56,7 @@
       "created": 1778344688,
       "pinned": false,
       "published": true,
-      "triboro_offset": 241,
+      "triboro_offset": 48,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -68,7 +68,7 @@
       "created": 1778344688,
       "pinned": false,
       "published": true,
-      "triboro_offset": 254,
+      "triboro_offset": 51,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -80,7 +80,7 @@
       "created": 1778344688,
       "pinned": false,
       "published": true,
-      "triboro_offset": 268,
+      "triboro_offset": 54,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -92,7 +92,7 @@
       "created": 1778344688,
       "pinned": false,
       "published": true,
-      "triboro_offset": 283,
+      "triboro_offset": 56,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -104,7 +104,7 @@
       "created": 1778344679,
       "pinned": false,
       "published": true,
-      "triboro_offset": 59,
+      "triboro_offset": 12,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -116,7 +116,7 @@
       "created": 1778344679,
       "pinned": false,
       "published": true,
-      "triboro_offset": 73,
+      "triboro_offset": 14,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -128,7 +128,7 @@
       "created": 1778344679,
       "pinned": false,
       "published": true,
-      "triboro_offset": 90,
+      "triboro_offset": 18,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -140,7 +140,7 @@
       "created": 1778344679,
       "pinned": false,
       "published": true,
-      "triboro_offset": 105,
+      "triboro_offset": 20,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -152,7 +152,7 @@
       "created": 1778344679,
       "pinned": false,
       "published": true,
-      "triboro_offset": 119,
+      "triboro_offset": 23,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -164,7 +164,7 @@
       "created": 1778344679,
       "pinned": false,
       "published": true,
-      "triboro_offset": 136,
+      "triboro_offset": 26,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -176,7 +176,7 @@
       "created": 1778344679,
       "pinned": false,
       "published": true,
-      "triboro_offset": 149,
+      "triboro_offset": 29,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -188,7 +188,7 @@
       "created": 1778344679,
       "pinned": false,
       "published": true,
-      "triboro_offset": 163,
+      "triboro_offset": 33,
       "status": "published",
       "publish_at": 1778345279
     },
@@ -214,7 +214,7 @@
       "published": true,
       "status": "published",
       "publish_at": 1777748832,
-      "triboro_offset": 14
+      "triboro_offset": 3
     },
     {
       "id": "1a3c1911ce",
@@ -226,7 +226,7 @@
       "published": true,
       "status": "published",
       "publish_at": 1777748832,
-      "triboro_offset": 28
+      "triboro_offset": 6
     },
     {
       "id": "fbf586c296",
@@ -238,7 +238,7 @@
       "published": true,
       "status": "published",
       "publish_at": 1777748832,
-      "triboro_offset": 46
+      "triboro_offset": 9
     }
   ]
 }
