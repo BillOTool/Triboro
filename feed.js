@@ -705,6 +705,11 @@ function resetView(ev) {
   try {
     await loadSite();
     _lastGenerated = SITE.generated;
+    // Pre-populate seenIds so the very first paint doesn't animate the entire
+    // visible feed at once. Animations should signal NEW arrivals — not "the
+    // page just loaded." From this point on, anything that crosses into
+    // viewer-time gets the slide-in treatment.
+    commitSeenIds();
     render();
     setInterval(pollSite, SITE_POLL_INTERVAL_MS);
   } catch (e) {
