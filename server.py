@@ -8,6 +8,7 @@ Triboro Server
 
 import json
 import os
+import random
 import re
 import secrets
 import time
@@ -25,9 +26,15 @@ WORLD_FILE = os.path.join(DATA, "world.md")
 SITE_FILE = os.path.join(DATA, "site.json")
 RESIDENTS_FILE = os.path.join(DATA, "residents.json")
 CHATS_FILE = os.path.join(DATA, "chats.json")
+QUEUE_STATE_FILE = os.path.join(DATA, "queue_state.json")
 
 DAILY_MESSAGE_LIMIT = 50
 HISTORY_TURNS_TO_SEND = 16  # how many recent messages to include in each Gemini call
+
+# Queue cadence — drip a queued post into the public feed at this interval
+# (when someone's polling). Each interval is randomized within ± JITTER.
+QUEUE_CADENCE_SECONDS = 90
+QUEUE_JITTER_SECONDS = 30
 
 API_KEY = os.environ.get("GEMINI_API_KEY", "")
 _key_file = os.path.join(ROOT, ".api-key")
@@ -168,6 +175,96 @@ def append_chat_messages(resident_id, character_id, messages):
     return history
 
 
+# ─── queue + post lifecycle ──────────────────────────────────────────────
+
+# Each post has a status:
+#   draft     — admin's working copy, never shown
+#   queued    — waiting in the drip queue, server publishes one at a time
+#   published — visible in site.json
+# `published: bool` is kept in sync with status=='published' for backward compat.
+
+def migrate_post(p):
+    if "status" not in p:
+        p["status"] = "published" if p.get("published") else "draft"
+    if p["status"] == "published" and "publish_at" not in p:
+        p["publish_at"] = p.get("created", int(time.time()))
+    p["published"] = (p["status"] == "published")
+    # Per-viewer time anchor: how many seconds after a viewer's first visit this
+    # post should appear. 0 = immediately visible on their day 1.
+    if "triboro_offset" not in p:
+        p["triboro_offset"] = 0
+    return p
+
+def normalize_posts(posts):
+    return [migrate_post(p) for p in posts]
+
+def migrate_event(e):
+    # Same offset semantics as posts.
+    if "triboro_offset" not in e:
+        e["triboro_offset"] = 0
+    return e
+
+def normalize_events(events):
+    return [migrate_event(e) for e in events]
+
+def publish_sort_key(p):
+    return p.get("publish_at") or p.get("created") or 0
+
+def get_queue_state():
+    return read_json(QUEUE_STATE_FILE, {
+        "cadence_seconds": QUEUE_CADENCE_SECONDS,
+        "jitter_seconds": QUEUE_JITTER_SECONDS,
+        "last_publish_at": 0,
+        "next_due_at": 0,
+    })
+
+def save_queue_state(state):
+    write_json(QUEUE_STATE_FILE, state)
+
+def schedule_next_due(state, after=None):
+    after = after if after is not None else int(time.time())
+    cadence = state.get("cadence_seconds", QUEUE_CADENCE_SECONDS)
+    jitter = state.get("jitter_seconds", QUEUE_JITTER_SECONDS)
+    delta = cadence + random.randint(-jitter, jitter)
+    state["next_due_at"] = after + max(10, delta)
+    return state
+
+def publish_due_posts(max_publish=1):
+    """Tick: if cadence elapsed and queue not empty, publish the next post(s)."""
+    state = get_queue_state()
+    now = int(time.time())
+    if now < state.get("next_due_at", 0):
+        return []
+
+    data = read_json(POSTS_FILE, {"posts": []})
+    posts = normalize_posts(data["posts"])
+    queued = [p for p in posts if p["status"] == "queued"]
+    queued.sort(key=lambda p: (p.get("queue_order", p.get("created", 0)), p.get("created", 0)))
+    if not queued:
+        # Nothing to drip; don't reschedule yet — let next post land at "now + cadence"
+        return []
+
+    publishing = queued[:max_publish]
+    for p in publishing:
+        p["status"] = "published"
+        p["published"] = True
+        p["publish_at"] = now
+        p.pop("queue_order", None)
+    data["posts"] = posts
+    write_json(POSTS_FILE, data)
+
+    schedule_next_due(state, after=now)
+    state["last_publish_at"] = now
+    save_queue_state(state)
+    build_site()
+    return publishing
+
+def next_queue_order():
+    posts = normalize_posts(read_json(POSTS_FILE, {"posts": []})["posts"])
+    used = [p.get("queue_order") for p in posts if p["status"] == "queued" and p.get("queue_order") is not None]
+    return (max(used) + 1) if used else 1
+
+
 # ─── public site bundle ──────────────────────────────────────────────────
 
 PUBLIC_CHAR_KEYS = {"name", "handle", "floor", "avatar", "faction", "tags"}
@@ -179,11 +276,10 @@ def build_site():
         meta = {k: v for k, v in c["meta"].items() if k in PUBLIC_CHAR_KEYS}
         chars.append({"id": c["id"], **meta})
 
-    events = read_json(EVENTS_FILE, {"events": []})["events"]
-    all_posts = read_json(POSTS_FILE, {"posts": []})["posts"]
-    posts = [p for p in all_posts if p.get("published")]
-
-    posts.sort(key=lambda p: (0 if p.get("pinned") else 1, -p.get("created", 0)))
+    events = normalize_events(read_json(EVENTS_FILE, {"events": []})["events"])
+    all_posts = normalize_posts(read_json(POSTS_FILE, {"posts": []})["posts"])
+    posts = [p for p in all_posts if p["status"] == "published"]
+    posts.sort(key=lambda p: (0 if p.get("pinned") else 1, -publish_sort_key(p)))
 
     site = {
         "generated": int(time.time()),
@@ -256,17 +352,43 @@ def generate_reactions(event, character_ids, n_per_character=1):
         '{"character_id": "<id>", "text": "<the post>"}. '
         f"Use these character ids: {', '.join(character_ids)}."
     )
-    raw = gemini_generate(system, user, max_tokens=2000)
+    # Headroom: 10 posts × ~250 tokens each + JSON wrapper. 4000 keeps slack
+    # so the response doesn't truncate mid-string.
+    raw = gemini_generate(system, user, max_tokens=4000)
 
-    raw = raw.strip()
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\n?", "", raw)
-        raw = re.sub(r"\n?```$", "", raw)
-    posts = json.loads(raw)
+    def _strip_fences(s):
+        s = s.strip()
+        if s.startswith("```"):
+            s = re.sub(r"^```(?:json)?\n?", "", s)
+            s = re.sub(r"\n?```$", "", s)
+        return s
+
+    raw = _strip_fences(raw)
+    try:
+        posts = json.loads(raw)
+    except json.JSONDecodeError as e:
+        # One retry with a stricter reminder. Most failures are unescaped quotes
+        # inside a post body or a stray trailing comma.
+        retry_user = user + (
+            "\n\nIMPORTANT: Your previous response could not be parsed as JSON. "
+            "Return ONLY a valid JSON array. No code fences. Do not include "
+            "trailing commas. Escape every internal double-quote with \\\"."
+        )
+        raw2 = _strip_fences(gemini_generate(system, retry_user, max_tokens=4000))
+        try:
+            posts = json.loads(raw2)
+        except json.JSONDecodeError as e2:
+            # Surface the raw response so the author can see what went wrong.
+            preview = raw2[:400].replace("\n", " ")
+            raise RuntimeError(f"Gemini returned non-JSON twice: {e2}. Raw preview: {preview!r}")
 
     now = int(time.time())
+    event_offset = int(event.get("triboro_offset") or 0)
     out = []
     for p in posts:
+        # Each reaction lands a few minutes after its event in viewer-time, so
+        # they cluster around the headline rather than all at the same instant.
+        offset = event_offset + random.randint(60, 1800)
         out.append({
             "id": uuid.uuid4().hex[:10],
             "character_id": p["character_id"],
@@ -275,6 +397,7 @@ def generate_reactions(event, character_ids, n_per_character=1):
             "created": now,
             "pinned": False,
             "published": False,
+            "triboro_offset": offset,
         })
     return out
 
@@ -385,6 +508,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "title": body.get("title", "").strip(),
                 "description": body.get("description", "").strip(),
                 "created": int(time.time()),
+                "triboro_offset": int(body.get("triboro_offset") or 0),
             }
             if not event["title"]:
                 return self.send_json({"error": "title required"}, 400)
@@ -412,6 +536,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "created": int(time.time()),
                 "pinned": bool(body.get("pinned")),
                 "published": bool(body.get("published")),
+                "triboro_offset": int(body.get("triboro_offset") or 0),
             }
             data = read_json(POSTS_FILE, {"posts": []})
             data["posts"].insert(0, post)
@@ -431,6 +556,95 @@ class Handler(SimpleHTTPRequestHandler):
             save_character(cid, raw)
             build_site()
             return self.send_json(get_character(cid))
+        if p == "/api/admin/schedule":
+            # Spread a set of posts (and optionally their parent events) across
+            # a window of viewer-time. Body:
+            #   scope:           "unpublished" | "all" | "published" | list of ids
+            #   interval_seconds: gap between consecutive posts (overrides duration)
+            #   duration_seconds: total window length (used if interval not set)
+            #   start_offset:     where in viewer-time the window begins (default 0)
+            #   include_events:   also stagger the events those posts belong to
+            #   jitter:           ±10% random nudge so posts don't land on round numbers
+            #   auto_publish:     also flip the targeted posts to status=published
+            scope = body.get("scope", "unpublished")
+            interval = body.get("interval_seconds")
+            duration = max(0, int(body.get("duration_seconds") or 0))
+            start = max(0, int(body.get("start_offset") or 0))
+            include_events = bool(body.get("include_events", True))
+            jitter = bool(body.get("jitter", True))
+            auto_publish = bool(body.get("auto_publish", False))
+
+            data = read_json(POSTS_FILE, {"posts": []})
+            posts = normalize_posts(data["posts"])
+            if isinstance(scope, list):
+                target_ids = set(scope)
+                targets = [p for p in posts if p["id"] in target_ids]
+            elif scope == "all":
+                targets = list(posts)
+            elif scope == "published":
+                targets = [p for p in posts if p["status"] == "published"]
+            else:  # "unpublished" / default
+                targets = [p for p in posts if p["status"] != "published"]
+
+            if not targets:
+                return self.send_json({"error": "no posts matched scope"}, 400)
+
+            # Order targets so older events get earlier offsets (= reach a
+            # viewer first) and newer events get later offsets (= appear on
+            # top of the feed once they arrive). Within an event, sort by
+            # post creation time. Posts with no event use their own created.
+            events_for_order = read_json(EVENTS_FILE, {"events": []}).get("events", [])
+            event_created = {e["id"]: e.get("created", 0) for e in events_for_order}
+            def _sort_key(p):
+                eid = p.get("event_id")
+                anchor = event_created.get(eid, p.get("created", 0)) if eid else p.get("created", 0)
+                return (anchor, p.get("created", 0))
+            targets.sort(key=_sort_key)
+            n = len(targets)
+            if interval is not None:
+                step = max(1, int(interval))
+            else:
+                step = (duration / n) if n > 0 else 0
+            now_ts = int(time.time())
+            for i, post in enumerate(targets):
+                base = start + step * i
+                if jitter and step > 0:
+                    base += random.uniform(-step * 0.1, step * 0.1)
+                post["triboro_offset"] = int(max(0, base))
+                if auto_publish:
+                    post["status"] = "published"
+                    post["published"] = True
+                    post.setdefault("publish_at", now_ts)
+
+            if include_events:
+                evdata = read_json(EVENTS_FILE, {"events": []})
+                events = normalize_events(evdata["events"])
+                # Each event picks up the offset of its earliest post — but
+                # we look at ALL posts in the event, not just the ones we
+                # just spread. Otherwise re-scheduling a stray draft can
+                # bump an event past its already-published reactions.
+                event_offsets = {}
+                for post in posts:
+                    eid = post.get("event_id")
+                    if not eid:
+                        continue
+                    cur = event_offsets.get(eid)
+                    if cur is None or post["triboro_offset"] < cur:
+                        event_offsets[eid] = post["triboro_offset"]
+                for ev in events:
+                    if ev["id"] in event_offsets:
+                        ev["triboro_offset"] = event_offsets[ev["id"]]
+                evdata["events"] = events
+                write_json(EVENTS_FILE, evdata)
+
+            data["posts"] = posts
+            write_json(POSTS_FILE, data)
+            build_site()
+            return self.send_json({
+                "scheduled": n,
+                "duration_seconds": duration,
+                "start_offset": start,
+            })
         if p == "/api/admin/generate":
             event_id = body.get("event_id")
             char_ids = body.get("character_ids", [])
@@ -475,9 +689,26 @@ class Handler(SimpleHTTPRequestHandler):
                         post["pinned"] = bool(body["pinned"])
                     if "published" in body:
                         post["published"] = bool(body["published"])
+                    if "triboro_offset" in body:
+                        post["triboro_offset"] = int(body["triboro_offset"] or 0)
                     write_json(POSTS_FILE, data)
                     build_site()
                     return self.send_json(post)
+            return self.send_json({"error": "not found"}, 404)
+        if p.startswith("/api/admin/event/"):
+            eid = p.rsplit("/", 1)[-1]
+            data = read_json(EVENTS_FILE, {"events": []})
+            for event in data["events"]:
+                if event["id"] == eid:
+                    if "title" in body:
+                        event["title"] = body["title"]
+                    if "description" in body:
+                        event["description"] = body["description"]
+                    if "triboro_offset" in body:
+                        event["triboro_offset"] = int(body["triboro_offset"] or 0)
+                    write_json(EVENTS_FILE, data)
+                    build_site()
+                    return self.send_json(event)
             return self.send_json({"error": "not found"}, 404)
         self.send_json({"error": "not found"}, 404)
 

@@ -277,6 +277,7 @@ function renderPosts() {
       <div class="post-head">
         <span class="post-handle">${escapeHtml(handle)}</span>
         <span>
+          <span class="offset-tag" title="When this post appears in viewer-time">⏱ ${offsetLabel(p.triboro_offset)}</span>
           ${p.pinned ? '<span class="pinned-tag">📌 PINNED</span>' : ""}
           ${p.published ? '<span class="published-tag">● published</span>' : ""}
         </span>
@@ -366,6 +367,49 @@ async function handlePostAction(ev) {
 
 document.getElementById("filter-unpublished").onchange = renderPosts;
 document.getElementById("filter-pinned").onchange = renderPosts;
+
+// Convert seconds-from-epoch to "Day X · HH:MM" — the way authors think
+// about a personal timeline ("show this on a viewer's day 3, evening").
+function offsetLabel(seconds) {
+  const s = Math.max(0, Math.floor(seconds || 0));
+  const days = Math.floor(s / 86400);
+  const rem = s - days * 86400;
+  const hours = Math.floor(rem / 3600);
+  const mins = Math.floor((rem - hours * 3600) / 60);
+  return `Day ${days + 1} · ${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+}
+
+function humanDuration(seconds) {
+  const s = Math.max(0, Math.round(seconds || 0));
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.round(s / 60)}m`;
+  if (s < 86400) return `${(s / 3600).toFixed(1)}h`;
+  return `${(s / 86400).toFixed(1)}d`;
+}
+
+document.getElementById("btn-schedule").onclick = async () => {
+  const status = document.getElementById("sched-status");
+  const scope = document.getElementById("sched-scope").value;
+  const interval = parseInt(document.getElementById("sched-interval").value, 10);
+  const jitter = document.getElementById("sched-jitter").checked;
+  const auto_publish = document.getElementById("sched-publish").checked;
+  status.textContent = "scheduling..."; status.className = "status";
+  try {
+    const r = await api("/schedule", {
+      method: "POST",
+      body: { scope, interval_seconds: interval, jitter, include_events: true, auto_publish },
+    });
+    const total = (r.scheduled || 0) * interval;
+    status.textContent = `spread ${r.scheduled} posts every ~${interval}s · covers ${humanDuration(total)}${auto_publish ? " · published" : ""}`;
+    status.className = "status ok";
+    await loadPosts();
+    await loadEvents();
+    renderPosts();
+  } catch (e) {
+    status.textContent = "error: " + e.message;
+    status.className = "status err";
+  }
+};
 
 document.getElementById("btn-publish-all").onclick = async () => {
   const onlyUnpub = document.getElementById("filter-unpublished").checked;

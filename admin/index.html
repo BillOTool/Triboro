@@ -85,6 +85,38 @@
           <label><input type="checkbox" id="filter-pinned"> Pinned only</label>
           <button type="button" id="btn-publish-all">Publish all visible</button>
         </div>
+
+        <div class="schedule-bar">
+          <h3>Schedule across viewer-time</h3>
+          <p class="hint">Each viewer's "Day 1" begins when they first open the page. Pick the cadence you want posts to appear at — a short interval (10-30s) feels like a live feed for casual visitors; longer intervals (hours/days) work for marathon-style storytelling.</p>
+          <div class="row">
+            <label>Spread:
+              <select id="sched-scope">
+                <option value="unpublished">unpublished posts</option>
+                <option value="published">published posts</option>
+                <option value="all">all posts</option>
+              </select>
+            </label>
+            <label>at interval:
+              <select id="sched-interval">
+                <option value="10">~10 seconds</option>
+                <option value="15" selected>~15 seconds</option>
+                <option value="30">~30 seconds</option>
+                <option value="60">~1 minute</option>
+                <option value="300">~5 minutes</option>
+                <option value="900">~15 minutes</option>
+                <option value="3600">~1 hour</option>
+                <option value="14400">~4 hours</option>
+                <option value="86400">~1 day</option>
+              </select>
+            </label>
+            <label><input type="checkbox" id="sched-jitter" checked> jitter</label>
+            <label><input type="checkbox" id="sched-publish" checked> publish them</label>
+            <button type="button" id="btn-schedule" class="primary">Spread</button>
+            <span id="sched-status" class="status"></span>
+          </div>
+        </div>
+
         <ul id="posts-list" class="list posts"></ul>
       </div>
     </section>

@@ -143,6 +143,18 @@ footer {
   font-family: "Helvetica Neue", "Arial", sans-serif;
 }
 footer .muted { color: var(--muted); margin-top: 4px; font-size: 12px; }
+footer .reset-link {
+  color: var(--muted);
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+footer .reset-link:hover { color: var(--ink); }
+.masthead-meta-c {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
 
 /* ─── section labels ─── */
 
@@ -204,6 +216,15 @@ footer .muted { color: var(--muted); margin-top: 4px; font-size: 12px; }
   border-top: 1px dashed var(--rule);
 }
 .post:first-of-type { border-top: 1px solid var(--ink-soft); }
+
+/* Posts that just crossed into the viewer's personal time fade in. Existing
+   posts have already been "seen" and skip the animation to avoid flashing
+   the whole feed on every render. */
+@keyframes post-arrive {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.post-arriving { animation: post-arrive 700ms ease-out both; }
 
 .post-head {
   display: flex;

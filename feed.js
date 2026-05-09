@@ -8,12 +8,139 @@ let CHARS_BY_ID = {};
 let RESIDENT = null;  // { id, display_name, avatar, token, rate_remaining, rate_limit }
 
 const TOKEN_KEY = "triboro_token";
+const EPOCH_KEY = "triboro_epoch_at";
+const VIEWER_ID_KEY = "triboro_viewer_id";
+
+let _revealTimer = null;
 
 // Chat endpoints live on a separate Cloudflare Worker in production. Local dev
 // (python3 server.py) leaves TRIBORO_BACKEND undefined, so we fall back to
 // same-origin and hit server.py directly. On GH Pages, index.html sets
 // window.TRIBORO_BACKEND to the workers.dev URL.
 const BACKEND = (typeof window !== "undefined" && window.TRIBORO_BACKEND) || "";
+
+// ─── per-viewer time anchor + shuffle ──────────────────────────────────
+// Each viewer's "Day 1 of Triboro" is the moment they first opened the page
+// (or, if they registered, the moment their resident profile was created).
+// Posts and events have a triboro_offset (seconds from a viewer's epoch);
+// they only render once (now - epoch) >= offset. A separate viewer_id seeds
+// a deterministic shuffle so two viewers with the same epoch still see the
+// feed in different orders.
+
+function nowSec() { return Math.floor(Date.now() / 1000); }
+
+function viewerEpoch() {
+  if (RESIDENT && RESIDENT.created) return RESIDENT.created;
+  let v = parseInt(localStorage.getItem(EPOCH_KEY) || "0", 10);
+  if (!v) {
+    v = nowSec();
+    localStorage.setItem(EPOCH_KEY, String(v));
+  }
+  return v;
+}
+
+function viewerId() {
+  if (RESIDENT && RESIDENT.id) return RESIDENT.id;
+  let v = localStorage.getItem(VIEWER_ID_KEY);
+  if (!v) {
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    v = "anon_" + [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
+    localStorage.setItem(VIEWER_ID_KEY, v);
+  }
+  return v;
+}
+
+function personalTime() { return nowSec() - viewerEpoch(); }
+
+function isVisibleNow(item) {
+  if (item && item.pinned) return true;  // pinned bypasses the time gate
+  return personalTime() >= (item.triboro_offset || 0);
+}
+
+function hashSeed(s) {
+  // FNV-1a 32-bit; good enough for shuffling.
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function shuffleByViewer(items) {
+  const vid = viewerId();
+  return [...items]
+    .map(it => ({ it, k: hashSeed(vid + ":" + (it.id || "")) }))
+    .sort((a, b) => a.k - b.k)
+    .map(x => x.it);
+}
+
+// Newest-revealed first, with the per-viewer shuffle as a deterministic
+// tiebreaker. Posts in the same generation batch typically share a
+// triboro_offset (or are within seconds of each other after jitter), so the
+// shuffle still gives two viewers different orders within a cluster.
+function sortNewestFirst(items) {
+  const vid = viewerId();
+  return [...items].sort((a, b) => {
+    const offA = a.triboro_offset || 0;
+    const offB = b.triboro_offset || 0;
+    if (offA !== offB) return offB - offA;
+    const createdA = a.created || 0;
+    const createdB = b.created || 0;
+    if (createdA !== createdB) return createdB - createdA;
+    return hashSeed(vid + ":" + (a.id || "")) - hashSeed(vid + ":" + (b.id || ""));
+  });
+}
+
+function scheduleNextReveal() {
+  if (_revealTimer) { clearTimeout(_revealTimer); _revealTimer = null; }
+  if (!SITE) return;
+  const pt = personalTime();
+  const candidates = [];
+  for (const p of SITE.posts || []) {
+    if (p.pinned) continue;
+    const off = p.triboro_offset || 0;
+    if (off > pt) candidates.push(off);
+  }
+  for (const e of SITE.events || []) {
+    const off = e.triboro_offset || 0;
+    if (off > pt) candidates.push(off);
+  }
+  if (!candidates.length) return;
+  candidates.sort((a, b) => a - b);
+  const waitSec = Math.min(candidates[0] - pt, 6 * 3600);  // cap at 6h to survive clock skew
+  _revealTimer = setTimeout(() => renderIfSafe(), Math.max(1000, waitSec * 1000));
+}
+
+// Poll site.json so newly-authored posts (and characters/events) show up while
+// the page is open. Skips when a chat panel is mounted so we don't clobber a
+// live conversation. Localhost polls fast (you're authoring in real-time);
+// production polls every minute (GH Pages rebuild + CDN propagation cap it
+// anyway).
+const SITE_POLL_INTERVAL_MS =
+  (typeof location !== "undefined" && /^(localhost|127\.0\.0\.1)$/.test(location.hostname))
+    ? 15_000
+    : 60_000;
+let _lastGenerated = null;
+
+function renderIfSafe() {
+  if (document.querySelector("#chat-panel")) return;
+  render();
+}
+
+async function pollSite() {
+  if (document.querySelector("#chat-panel")) return;
+  try {
+    await loadSite();
+    if (SITE.generated !== _lastGenerated) {
+      _lastGenerated = SITE.generated;
+      render();
+    }
+  } catch {
+    // network blip — try again next tick
+  }
+}
 
 const AVATAR_CHOICES = ["👤","🐸","🦝","🦊","🦉","🐝","🐍","🦴","🪞","🕯️","📻","🧷","🧣","🧶"];
 
@@ -122,12 +249,14 @@ function render() {
   highlightNav();
   const r = parseRoute();
   if (!SITE) return;
-  if (r.name === "feed") return renderFeed();
-  if (r.name === "people") return renderPeople();
-  if (r.name === "events") return renderEvents();
-  if (r.name === "about") return renderAbout();
-  if (r.name === "character") return renderCharacter(r.id);
-  if (r.name === "event") return renderEvent(r.id);
+  if (r.name === "feed") renderFeed();
+  else if (r.name === "people") renderPeople();
+  else if (r.name === "events") renderEvents();
+  else if (r.name === "about") renderAbout();
+  else if (r.name === "character") renderCharacter(r.id);
+  else if (r.name === "event") renderEvent(r.id);
+  commitSeenIds();
+  scheduleNextReveal();
 }
 
 window.addEventListener("hashchange", render);
@@ -135,16 +264,21 @@ window.addEventListener("hashchange", render);
 // ─── views ───
 
 function renderFeed() {
-  const pinned = SITE.posts.filter(p => p.pinned);
+  const visiblePosts = SITE.posts.filter(isVisibleNow);
+  const visibleEventIds = new Set(SITE.events.filter(isVisibleNow).map(e => e.id));
+
+  const pinned = visiblePosts.filter(p => p.pinned);
+  const unpinned = sortNewestFirst(visiblePosts.filter(p => !p.pinned));
+
   const byEvent = {};
-  for (const p of SITE.posts) {
-    if (p.pinned) continue;
-    const eid = p.event_id || "_misc";
+  for (const p of unpinned) {
+    const eid = (p.event_id && visibleEventIds.has(p.event_id)) ? p.event_id : "_misc";
     (byEvent[eid] ??= []).push(p);
   }
+
   const eventOrder = SITE.events
-    .filter(e => byEvent[e.id])
-    .sort((a, b) => b.created - a.created);
+    .filter(e => isVisibleNow(e) && byEvent[e.id])
+    .sort((a, b) => (b.triboro_offset || 0) - (a.triboro_offset || 0) || b.created - a.created);
 
   let html = "";
 
@@ -166,7 +300,7 @@ function renderFeed() {
   }
 
   if (!pinned.length && !eventOrder.length && !byEvent._misc) {
-    html = `<div class="empty">The bulletin is quiet today.</div>`;
+    html = `<div class="empty">The bulletin is quiet today. Check back in a bit.</div>`;
   }
 
   ROOT.innerHTML = html;
@@ -187,7 +321,10 @@ function renderPeople() {
 }
 
 function renderEvents() {
-  const items = SITE.events.map(e => `
+  const visible = SITE.events
+    .filter(isVisibleNow)
+    .sort((a, b) => (b.triboro_offset || 0) - (a.triboro_offset || 0) || b.created - a.created);
+  const items = visible.map(e => `
     <div class="event">
       <h2 class="event-headline"><a href="#/e/${e.id}">${esc(e.title)}</a></h2>
       ${e.description ? `<p class="event-dek">${esc(e.description)}</p>` : ""}
@@ -201,7 +338,7 @@ function renderEvents() {
 function renderCharacter(id) {
   const c = CHARS_BY_ID[id];
   if (!c) { ROOT.innerHTML = `<div class="empty">No such resident.</div>`; return; }
-  const posts = SITE.posts.filter(p => p.character_id === id);
+  const posts = sortNewestFirst(SITE.posts.filter(p => p.character_id === id && isVisibleNow(p)));
   ROOT.innerHTML = `
     <a href="#/people" class="back-link">← All residents</a>
     <div class="profile-head">
@@ -220,8 +357,8 @@ function renderCharacter(id) {
 
 function renderEvent(id) {
   const e = SITE.events.find(x => x.id === id);
-  if (!e) { ROOT.innerHTML = `<div class="empty">No such event.</div>`; return; }
-  const posts = SITE.posts.filter(p => p.event_id === id);
+  if (!e || !isVisibleNow(e)) { ROOT.innerHTML = `<div class="empty">No such event.</div>`; return; }
+  const posts = sortNewestFirst(SITE.posts.filter(p => p.event_id === id && isVisibleNow(p)));
   ROOT.innerHTML = `
     <a href="#/events" class="back-link">← All events</a>
     <div class="event">
@@ -257,11 +394,16 @@ function eventBlockHtml(e, posts) {
     </div>`;
 }
 
+// Tracks IDs visible on the previous render so we can mark new arrivals with
+// an "arriving" class and animate them in via CSS.
+const _seenIds = new Set();
+
 function postHtml(p, opts = {}) {
   const c = CHARS_BY_ID[p.character_id] || {};
-  const cls = opts.pinned ? "post pinned" : "post";
+  let cls = opts.pinned ? "post pinned" : "post";
+  if (!_seenIds.has(p.id)) cls += " post-arriving";
   return `
-    <article class="${cls}">
+    <article class="${cls}" data-post-id="${esc(p.id)}">
       <div class="post-head">
         <span class="post-name"><a href="#/c/${p.character_id}">${esc(c.name || p.character_id)}</a></span>
         <span class="post-handle">${esc(c.handle || "")}</span>
@@ -270,6 +412,16 @@ function postHtml(p, opts = {}) {
       </div>
       <p class="post-text">${esc(p.text)}</p>
     </article>`;
+}
+
+function commitSeenIds() {
+  if (!SITE) return;
+  for (const p of SITE.posts || []) {
+    if (isVisibleNow(p)) _seenIds.add(p.id);
+  }
+  for (const e of SITE.events || []) {
+    if (isVisibleNow(e)) _seenIds.add(e.id);
+  }
 }
 
 // ─── chat ───
@@ -493,7 +645,7 @@ function updateAuthChip() {
 // ─── util ───
 
 function countPostsForEvent(eid) {
-  return SITE.posts.filter(p => p.event_id === eid).length;
+  return SITE.posts.filter(p => p.event_id === eid && isVisibleNow(p)).length;
 }
 
 function formatDate(ts) {
@@ -514,6 +666,30 @@ function setMastDate() {
   document.getElementById("mast-date").textContent = `VOL. LXXIII · ${datestr}`;
 }
 
+// "TRIBORO DAY 2 · 03:14" — your personal time anchor, updated every 30s.
+function setMastDay() {
+  const el = document.getElementById("mast-day");
+  if (!el) return;
+  const s = Math.max(0, personalTime());
+  const days = Math.floor(s / 86400);
+  const rem = s - days * 86400;
+  const h = Math.floor(rem / 3600);
+  const m = Math.floor((rem - h * 3600) / 60);
+  el.textContent = `TRIBORO DAY ${days + 1} · ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function resetView(ev) {
+  if (ev) ev.preventDefault();
+  const note = RESIDENT
+    ? "Restart Triboro from Day 1? This signs you out (your resident profile and DM history stay on the server — your recovery URL still works) and gives you a fresh anonymous timeline."
+    : "Restart Triboro from Day 1? Your personal timeline resets so you'll re-experience posts as they drip in.";
+  if (!confirm(note)) return;
+  localStorage.removeItem(EPOCH_KEY);
+  localStorage.removeItem(TOKEN_KEY);  // for registered viewers, clear so epoch falls back to a fresh anon
+  // Keep viewer_id so the per-viewer shuffle stays stable across resets.
+  location.reload();
+}
+
 // ─── boot ───
 
 (async () => {
@@ -521,9 +697,14 @@ function setMastDate() {
   consumeRecoveryParam();
   await loadResident();
   updateAuthChip();
+  setMastDay();
+  setInterval(setMastDay, 30_000);
+  document.getElementById("reset-view")?.addEventListener("click", resetView);
   try {
     await loadSite();
+    _lastGenerated = SITE.generated;
     render();
+    setInterval(pollSite, SITE_POLL_INTERVAL_MS);
   } catch (e) {
     ROOT.innerHTML = `<div class="empty">Couldn't load <code>data/site.json</code>. Run the authoring server (<code>python3 server.py</code>) and publish at least one post.</div>`;
     console.error(e);
