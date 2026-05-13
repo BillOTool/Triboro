@@ -217,50 +217,47 @@ footer .reset-link:hover { color: var(--ink); }
 }
 .post:first-of-type { border-top: 1px solid var(--ink-soft); }
 
-/* Posts that just crossed into the viewer's personal time slide in from
-   above with a soft warm highlight that fades — like a new comment landing
-   on Facebook or Nextdoor. Existing posts (already in _seenIds) don't get
-   the .post-arriving class, so they appear instantly on re-render. */
+/* Soft arrival. Tiny scale-up with a gentle overshoot, a few px of
+   downward settle. No rotation. Smooth easing so a feed full of arrivals
+   stays calm. */
 @keyframes post-arrive {
   0% {
     opacity: 0;
-    transform: translateY(-14px);
-    background-color: rgba(220, 170, 60, 0.18);
+    transform: translateY(-3px) scale(0.92);
   }
   60% {
     opacity: 1;
-    transform: translateY(0);
-    background-color: rgba(220, 170, 60, 0.10);
+    transform: translateY(0) scale(1.015);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
-    background-color: transparent;
+    transform: scale(1);
   }
 }
 .post-arriving {
-  animation: post-arrive 900ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  animation: post-arrive 650ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  transform-origin: 6% 50%;
 }
 
-/* Whole event headlines drop in slightly more dramatically — they're the
-   "anchor" for a cluster of reactions, so they should feel like an arrival. */
+/* Event headlines arrive a touch more prominently — they anchor a cluster
+   of reactions — but still nothing flashy. */
 @keyframes event-arrive {
   0% {
     opacity: 0;
-    transform: translateY(-22px);
+    transform: translateY(-5px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(1.02);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
 }
 .event-arriving {
-  animation: event-arrive 1100ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
-}
-
-/* Respect users who'd rather not see motion. */
-@media (prefers-reduced-motion: reduce) {
-  .post-arriving, .event-arriving { animation: none; }
+  animation: event-arrive 800ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  transform-origin: 3% 50%;
 }
 
 .post-head {
