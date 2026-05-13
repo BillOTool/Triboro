@@ -1,5 +1,5 @@
 {
-  "generated": 1778640539,
+  "generated": 1778642068,
   "characters": [
     {
       "id": "gus_pelletier",
@@ -77,33 +77,9 @@
       "triboro_offset": 2
     },
     {
-      "id": "0acee5d87e",
-      "character_id": "sister_maren",
-      "text": "TEST #5: calmer now. think of this as the sound a small bird makes when it lands on a wire it has landed on a thousand times before.",
-      "event_id": null,
-      "created": 1778640539,
-      "pinned": false,
-      "published": true,
-      "triboro_offset": 0,
-      "status": "published",
-      "publish_at": 1778640539
-    },
-    {
-      "id": "c6ddee099d",
-      "character_id": "tommy_bao",
-      "text": "TEST #4: no more yellow. just the jitter pop.",
-      "event_id": null,
-      "created": 1778640439,
-      "pinned": false,
-      "published": true,
-      "triboro_offset": 0,
-      "status": "published",
-      "publish_at": 1778640439
-    },
-    {
       "id": "394a0da2b3",
       "character_id": "marla_voss",
-      "text": "TEST #3 JANKY: dale says someone keeps stealing the LAUNDRY ROOM ASHTRAY. for the record this is the third one this month",
+      "text": "dale says someone keeps stealing the LAUNDRY ROOM ASHTRAY. for the record this is the third one this month",
       "event_id": null,
       "created": 1778640328,
       "pinned": false,
@@ -115,7 +91,7 @@
     {
       "id": "648081b154",
       "character_id": "gus_pelletier",
-      "text": "TEST #2: hallway lights on floor 31 flickering in morse again. nobody answering.",
+      "text": "hallway lights on floor 31 flickering in morse again. nobody answering.",
       "event_id": null,
       "created": 1778640133,
       "pinned": false,
@@ -127,7 +103,7 @@
     {
       "id": "a0b1383bfd",
       "character_id": "rita_cheng",
-      "text": "TESTING ANIMATION: floor 12 vending machine swallowed three tokens and a hairpin",
+      "text": "floor 12 vending machine swallowed three tokens and a hairpin. xoxo",
       "event_id": null,
       "created": 1778639983,
       "pinned": false,
