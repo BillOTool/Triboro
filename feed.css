@@ -1,15 +1,27 @@
-/* ─── triboro feed: newspaper + bulletin board ─────────────── */
+/* ─── almanapp: 70-year-old building bulletin BBS ──────────────
+   In-world conceit: Apt 47-G's R. Chen has been webmaster since Year 12.
+   Aesthetic is "amateur homemade building portal frozen in 1995" — tiled
+   parchment, blue underlined links, beveled WordArt header, scrolling
+   announcement crawl, hit counter, 88x31 webring badges. Real <marquee>
+   tag, on purpose. */
 
 :root {
-  --paper: #f3ecdc;
-  --paper-dark: #ebe2cd;
-  --ink: #1a1714;
-  --ink-soft: #4a4338;
-  --muted: #8a7f6f;
-  --rule: #c9bfa9;
-  --accent: #8a2018;     /* deep red */
-  --pin: #b8860b;        /* dark gold */
-  --hover: rgba(138, 32, 24, 0.06);
+  --paper: #ecdfb8;            /* manila parchment */
+  --paper-dark: #d8c990;
+  --paper-light: #f5ecca;
+  --ink: #1a1a1a;
+  --ink-soft: #2c2c2c;
+  --muted: #5b5448;
+  --rule: #8a7f5a;
+  --link: #1a3aa3;             /* royal blue, underlined */
+  --link-visited: #5a1aa0;
+  --accent: #8a2018;           /* deep red — emergencies + emphasis */
+  --pin: #b8860b;              /* dark gold — pinned bulletin */
+  --bevel-hi: #faf3d2;
+  --bevel-lo: #6f624a;
+  --frame-dark: #4a3f2a;
+  --hover: rgba(26, 58, 163, 0.08);
+  --good: #2a8048;
 }
 
 * { box-sizing: border-box; }
@@ -17,52 +29,92 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--paper);
   color: var(--ink);
-  font-family: "Iowan Old Style", "Charter", "Georgia", serif;
-  font-size: 17px;
-  line-height: 1.55;
+  font-family: "Times New Roman", "Times", "Georgia", serif;
+  font-size: 16px;
+  line-height: 1.5;
+  /* Two-layer cross-hatch on parchment — evokes a tiled GIF without the
+     weight. The repeating diagonals are what reads as "tiled background." */
+  background-color: var(--paper);
+  /* Inline SVG damask: faint blue 4-petal floret + corner dots, repeating
+     on a 40x40 tile. Reads as "tiled wallpaper GIF" without the bandwidth
+     of an actual GIF. The royal blue ties to the link palette. */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><path d='M20 11 L22.4 17.6 L29 20 L22.4 22.4 L20 29 L17.6 22.4 L11 20 L17.6 17.6 Z' fill='%231a3aa3' opacity='0.09'/><circle cx='20' cy='20' r='1.2' fill='%238a2018' opacity='0.18'/><circle cx='0' cy='0' r='1.1' fill='%234a3f2a' opacity='0.14'/><circle cx='40' cy='0' r='1.1' fill='%234a3f2a' opacity='0.14'/><circle cx='0' cy='40' r='1.1' fill='%234a3f2a' opacity='0.14'/><circle cx='40' cy='40' r='1.1' fill='%234a3f2a' opacity='0.14'/></svg>");
+  background-repeat: repeat;
 }
 
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a {
+  color: var(--link);
+  text-decoration: underline;
+}
+a:visited { color: var(--link-visited); }
+a:hover { color: var(--accent); text-decoration: underline; }
+a:active { color: var(--accent); }
 
 /* ─── masthead ─── */
 
 .masthead {
   text-align: center;
-  padding: 28px 20px 18px;
-  border-bottom: 3px double var(--ink);
-  margin: 0 24px;
+  padding: 18px 16px 0;
+  margin: 12px 16px 0;
+  background: var(--paper-light);
+  border: 3px ridge var(--frame-dark);
+  border-bottom: none;
 }
 
 .masthead-top {
   display: flex;
   justify-content: space-between;
-  font-family: "Helvetica Neue", "Arial", sans-serif;
+  font-family: "Courier New", "Courier", monospace;
   font-size: 11px;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
+
+.masthead-meta-r { color: var(--accent); font-weight: bold; }
 
 .masthead-title {
   display: block;
-  font-family: "Bodoni 72", "Didot", "Playfair Display", "Iowan Old Style", serif;
-  font-size: 72px;
+  font-family: "Impact", "Haettenschweiler", "Arial Black", "Helvetica", sans-serif;
+  font-size: 84px;
   font-weight: 900;
-  letter-spacing: -2px;
-  color: var(--ink);
+  letter-spacing: 6px;
   line-height: 1;
+  color: var(--link);
+  /* WordArt-style stacked bevel — three offset shadows simulate the
+     emboss/drop-shadow combo of mid-90s text effects. */
+  text-shadow:
+    1px 1px 0 var(--bevel-hi),
+    2px 2px 0 var(--bevel-lo),
+    3px 3px 0 var(--ink),
+    4px 4px 0 var(--frame-dark);
+  margin: 4px 0 2px;
 }
+.masthead-title:hover { color: var(--link); text-decoration: none; }
 
 .masthead-tagline {
   font-style: italic;
   font-size: 14px;
   color: var(--ink-soft);
-  margin-top: 6px;
+  margin: 6px 0 12px;
 }
+
+/* Scrolling announcement crawl — uses the real <marquee> tag. */
+.announce {
+  display: block;
+  background: var(--ink);
+  color: var(--paper-light);
+  font-family: "Courier New", "Courier", monospace;
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 6px 0;
+  margin: 6px -16px 0;
+  border-top: 2px ridge var(--frame-dark);
+  border-bottom: 2px ridge var(--frame-dark);
+}
+.announce #mast-smog { color: #ffd700; font-weight: bold; }
 
 /* ─── subnav ─── */
 
@@ -70,37 +122,39 @@ a:hover { text-decoration: underline; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--rule);
-  font-family: "Helvetica Neue", "Arial", sans-serif;
-  font-size: 12px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin: 0 24px 24px;
+  padding: 10px 14px;
+  margin: 0 16px 18px;
+  background: var(--paper-dark);
+  border: 3px ridge var(--frame-dark);
+  border-top: none;
+  font-family: "Courier New", "Courier", monospace;
+  font-size: 13px;
+  letter-spacing: 1px;
   gap: 12px;
 }
 
 .subnav-links {
   display: flex;
-  gap: 32px;
+  gap: 16px;
   flex: 1;
   justify-content: center;
-  /* offset to keep links visually centered despite the chip on the right */
   margin-left: 120px;
+  flex-wrap: wrap;
 }
 
 .subnav a {
-  color: var(--ink-soft);
-  padding-bottom: 2px;
-  border-bottom: 2px solid transparent;
+  color: var(--link);
+  text-decoration: underline;
+  padding: 2px 4px;
+  font-weight: bold;
 }
 
-.subnav a.active,
-.subnav a:hover {
-  color: var(--ink);
-  border-bottom-color: var(--accent);
+.subnav a.active {
+  color: var(--paper-light);
+  background: var(--link);
   text-decoration: none;
 }
+.subnav a:hover { color: var(--accent); }
 
 .auth-chip {
   display: inline-flex;
@@ -128,49 +182,150 @@ a:hover { text-decoration: underline; }
 /* ─── layout ─── */
 
 main {
-  max-width: 880px;
+  max-width: 860px;
   margin: 0 auto;
-  padding: 0 24px 60px;
+  padding: 14px 22px 40px;
+  background: var(--paper-light);
+  border: 3px ridge var(--frame-dark);
+  border-top: none;
+  margin-left: 16px;
+  margin-right: 16px;
 }
 
 footer {
   text-align: center;
-  padding: 30px 20px 40px;
-  border-top: 1px solid var(--rule);
-  margin: 60px 24px 0;
+  padding: 22px 16px 30px;
+  margin: 0 16px 24px;
+  background: var(--paper-dark);
+  border: 3px ridge var(--frame-dark);
+  border-top: 3px ridge var(--frame-dark);
   font-size: 13px;
   color: var(--ink-soft);
-  font-family: "Helvetica Neue", "Arial", sans-serif;
+  font-family: "Times New Roman", "Times", serif;
 }
-footer .muted { color: var(--muted); margin-top: 4px; font-size: 12px; }
+footer > div { margin: 6px 0; }
+footer .muted { color: var(--muted); font-size: 12px; }
+footer .footer-foot {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rule);
+}
 footer .reset-link {
   color: var(--muted);
   text-decoration: underline dotted;
   cursor: pointer;
 }
-footer .reset-link:hover { color: var(--ink); }
+footer .reset-link:hover { color: var(--accent); }
+
+/* ─── footer: badges, webring, webmaster, hit counter ─── */
+
+.footer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+.badge {
+  display: inline-block;
+  width: 88px;
+  height: 31px;
+  line-height: 1.05;
+  padding: 4px 4px;
+  font-family: "Arial", "Helvetica", sans-serif;
+  font-size: 8.5px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #fff;
+  text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.5);
+  border-left: 1px solid rgba(255,255,255,0.5);
+  border-right: 1px solid rgba(0,0,0,0.5);
+  border-bottom: 1px solid rgba(0,0,0,0.5);
+  white-space: normal;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.badge-blue { background: linear-gradient(180deg, #2a5add 0%, #1a3aa3 100%); }
+.badge-green { background: linear-gradient(180deg, #3aa05a 0%, #2a8048 100%); color: #fff; }
+.badge-red { background: linear-gradient(180deg, #c8302a 0%, #8a2018 100%); }
+.badge-gold { background: linear-gradient(180deg, #e8b830 0%, #b8860b 100%); color: #1a1a1a; }
+
+.webring {
+  margin: 14px 0 8px;
+  font-family: "Courier New", "Courier", monospace;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+.webring a { margin: 0 6px; }
+
+.webmaster {
+  font-family: "Times New Roman", "Times", serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 10px 0 6px;
+}
+.webmaster b { font-style: normal; }
+
+.hit-counter {
+  font-family: "Courier New", "Courier", monospace;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 8px 0;
+}
+.hit-counter .counter {
+  display: inline-block;
+  background: #000;
+  color: #2dff2d;             /* phosphor green */
+  font-family: "Courier New", "Courier", monospace;
+  font-weight: bold;
+  font-size: 16px;
+  letter-spacing: 2px;
+  padding: 2px 8px;
+  border: 2px inset #555;
+  margin-left: 6px;
+}
+
+.last-updated {
+  font-family: "Courier New", "Courier", monospace;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 .masthead-meta-c {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.05em;
   color: var(--ink-soft);
   font-size: 12px;
+  font-family: "Courier New", "Courier", monospace;
 }
 
 /* ─── section labels ─── */
 
 .section-label {
-  font-family: "Helvetica Neue", "Arial", sans-serif;
-  font-size: 11px;
-  letter-spacing: 3px;
+  font-family: "Arial Black", "Impact", "Helvetica", sans-serif;
+  font-size: 14px;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--accent);
-  font-weight: 700;
-  margin: 36px 0 14px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--rule);
+  color: var(--paper-light);
+  background: var(--link);
+  padding: 6px 12px;
+  margin: 30px 0 14px;
+  border-top: 2px solid var(--bevel-hi);
+  border-left: 2px solid var(--bevel-hi);
+  border-right: 2px solid var(--frame-dark);
+  border-bottom: 2px solid var(--frame-dark);
+  text-shadow: 1px 1px 0 var(--frame-dark);
 }
 
-.section-label:first-child { margin-top: 12px; }
+.section-label:first-child { margin-top: 8px; }
 
 /* ─── event card ─── */
 
@@ -183,15 +338,18 @@ footer .reset-link:hover { color: var(--ink); }
 .event:last-child { border-bottom: none; }
 
 .event-headline {
-  font-family: "Bodoni 72", "Didot", "Playfair Display", serif;
-  font-size: 34px;
-  font-weight: 700;
+  font-family: "Arial Black", "Impact", "Helvetica", sans-serif;
+  font-size: 26px;
+  font-weight: 900;
   line-height: 1.15;
   margin: 0 0 4px;
-  color: var(--ink);
+  color: var(--link);
+  text-shadow: 1px 1px 0 var(--bevel-hi);
 }
 
-.event-headline a { color: var(--ink); }
+.event-headline a { color: var(--link); text-decoration: underline; }
+.event-headline a:visited { color: var(--link-visited); }
+.event-headline a:hover { color: var(--accent); }
 
 .event-dek {
   font-style: italic;

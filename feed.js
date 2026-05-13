@@ -668,6 +668,35 @@ function setMastDate() {
   document.getElementById("mast-date").textContent = `VOL. LXXIII · ${datestr}`;
 }
 
+// Hit counter — looks like a 90s odometer but is actually deterministic per
+// viewer (epoch-derived seed) plus a localStorage tally for return visits.
+// The number drifts upward across sessions to feel alive without needing a
+// real backend.
+function setHitCounter() {
+  const el = document.getElementById("hit-counter");
+  if (!el) return;
+  const HIT_KEY = "triboro_hit_count";
+  const FOUNDING = 0x2bdfac0;  // arbitrary base so the counter reads "0274..."
+  let stored = parseInt(localStorage.getItem(HIT_KEY) || "0", 10);
+  if (!stored) {
+    // Seed with something believable: hash of the viewer id mod 80,000
+    const seed = (hashSeed(viewerId()) % 80000) + 200000;
+    stored = seed;
+  }
+  stored += 1;
+  localStorage.setItem(HIT_KEY, String(stored));
+  const total = FOUNDING + stored;
+  el.textContent = String(total).padStart(7, "0");
+}
+
+function setLastUpdated() {
+  const el = document.getElementById("last-updated");
+  if (!el) return;
+  const s = Math.max(0, personalTime());
+  const days = Math.floor(s / 86400);
+  el.textContent = `Triboro Day ${days + 1}`;
+}
+
 // "TRIBORO DAY 2 · 03:14" — your personal time anchor, updated every 30s.
 function setMastDay() {
   const el = document.getElementById("mast-day");
@@ -701,7 +730,16 @@ function resetView(ev) {
   updateAuthChip();
   setMastDay();
   setInterval(setMastDay, 30_000);
+  setHitCounter();
+  setLastUpdated();
+  setInterval(setLastUpdated, 60_000);
   document.getElementById("reset-view")?.addEventListener("click", resetView);
+  document.getElementById("webring-random")?.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    if (!SITE || !SITE.characters || !SITE.characters.length) return;
+    const c = SITE.characters[Math.floor(Math.random() * SITE.characters.length)];
+    location.hash = "#/c/" + c.id;
+  });
   try {
     await loadSite();
     _lastGenerated = SITE.generated;

@@ -13,18 +13,21 @@
     <div class="masthead-top">
       <span class="masthead-meta-l" id="mast-date">VOL. LXXIII · Bulletin No. 1</span>
       <span class="masthead-meta-c" id="mast-day"></span>
-      <span class="masthead-meta-r" id="mast-smog">SMOG 847 PPM</span>
+      <span class="masthead-meta-r">★ ALMANAPP ONLINE ★</span>
     </div>
     <a href="#/" class="masthead-title">ALMANAPP</a>
     <div class="masthead-tagline">All the building's news, posted by the building's people</div>
+    <marquee class="announce" scrollamount="4" behavior="scroll" direction="left">
+      ★ SMOG <span id="mast-smog">847</span> PPM (rising) ★ Floor 41 elevator still out — Maintenance aware ★ LAUNDRY-ROOM ASHTRAY: please stop taking it ★ Aurora drill Tuesday 0700 — duck and cover ★ Weekly mixer Friday 8pm, Rooftop B (bring a chair) ★ LOST: orange tabby, answers to "Mister" or doesn't ★ Sister Maren's bible study moved to 21-C ★ Tommy Bao's birthday cake fund accepting tokens ★
+    </marquee>
   </header>
 
   <nav class="subnav">
     <div class="subnav-links">
-      <a href="#/" data-route="feed" class="active">Feed</a>
-      <a href="#/people" data-route="people">People</a>
-      <a href="#/events" data-route="events">Events</a>
-      <a href="#/about" data-route="about">About Triboro</a>
+      <a href="#/" data-route="feed" class="active">[ FEED ]</a>
+      <a href="#/people" data-route="people">[ PEOPLE ]</a>
+      <a href="#/events" data-route="events">[ EVENTS ]</a>
+      <a href="#/about" data-route="about">[ ABOUT ]</a>
     </div>
     <button id="auth-chip" class="auth-chip" type="button"><span class="chip-name">Sign in</span></button>
   </nav>
@@ -32,7 +35,26 @@
   <main id="root"></main>
 
   <footer>
-    <div>Triboro · Year 73 · Population approx. 6,000</div>
+    <div class="footer-badges">
+      <span class="badge badge-blue">★ AURORA WATCH ★ MEMBER</span>
+      <span class="badge badge-green">EST. YR 12</span>
+      <span class="badge badge-red">FLR 41 EVAC CHAMPION</span>
+      <span class="badge badge-gold">BEST VIEWED · BUILDING BROWSER 3.2</span>
+    </div>
+    <div class="webring">
+      <a href="#/people">‹‹ Prev Floor</a>
+      <a href="#/people">Floor Index</a>
+      <a href="#" id="webring-random">Random Resident</a>
+      <a href="#/people">Next Floor ››</a>
+    </div>
+    <div class="webmaster">
+      Almanapp maintained by <a href="#/c/rita_cheng"><b>Rita Cheng, Apt 39-C</b></a> · since Year 12
+    </div>
+    <div class="hit-counter">
+      Visitors since the Restoration: <span class="counter" id="hit-counter">0000000</span>
+    </div>
+    <div class="last-updated">Last updated: <span id="last-updated">—</span></div>
+    <div class="footer-foot">Triboro · Year 73 · Population approx. 6,000</div>
     <div class="muted">All posts in-world fiction. No residents were stuck in real elevators.</div>
     <div class="muted"><a href="#" id="reset-view" class="reset-link">Restart Triboro from Day 1</a></div>
   </footer>
