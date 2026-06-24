@@ -27,6 +27,7 @@ SITE_FILE = os.path.join(DATA, "site.json")
 RESIDENTS_FILE = os.path.join(DATA, "residents.json")
 CHATS_FILE = os.path.join(DATA, "chats.json")
 STORIES_FILE = os.path.join(DATA, "stories.json")
+STORY_DOCS_DIR = os.path.join(DATA, "stories")  # one <story_id>.md per story's prose
 QUEUE_STATE_FILE = os.path.join(DATA, "queue_state.json")
 
 DAILY_MESSAGE_LIMIT = 50
@@ -221,6 +222,26 @@ def read_stories():
 def write_stories(data):
     write_json(STORIES_FILE, data)
 
+# A story may also carry the author's prose (the short story / longer doc it was
+# written from). That lives as data/stories/<id>.md — same per-file .md pattern
+# as characters — so long docs edit and diff cleanly. It seeds events + posts.
+def story_doc_path(sid):
+    return os.path.join(STORY_DOCS_DIR, f"{sid}.md")
+
+def read_story_doc(sid):
+    path = story_doc_path(sid)
+    return open(path).read() if os.path.exists(path) else ""
+
+def write_story_doc(sid, text):
+    os.makedirs(STORY_DOCS_DIR, exist_ok=True)
+    with open(story_doc_path(sid), "w") as f:
+        f.write(text)
+
+def delete_story_doc(sid):
+    path = story_doc_path(sid)
+    if os.path.exists(path):
+        os.remove(path)
+
 def find_story(stories, sid):
     for s in stories:
         if s["id"] == sid:
@@ -339,17 +360,77 @@ def build_world_context():
     return ""
 
 
+def _strip_fences(s):
+    s = s.strip()
+    if s.startswith("```"):
+        s = re.sub(r"^```(?:json)?\n?", "", s)
+        s = re.sub(r"\n?```$", "", s)
+    return s
+
+
+def gemini_json(system, user, max_tokens=4000, temperature=1.0):
+    """Call Gemini and parse the reply as JSON, with one stricter retry.
+    Most first-try failures are an unescaped quote or a stray trailing comma."""
+    raw = _strip_fences(gemini_generate(system, user, max_tokens, temperature))
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        retry_user = user + (
+            "\n\nIMPORTANT: Your previous response could not be parsed as JSON. "
+            "Return ONLY valid JSON. No code fences. Do not include trailing "
+            'commas. Escape every internal double-quote with \\".'
+        )
+        raw2 = _strip_fences(gemini_generate(system, retry_user, max_tokens, temperature))
+        try:
+            return json.loads(raw2)
+        except json.JSONDecodeError as e2:
+            preview = raw2[:400].replace("\n", " ")
+            raise RuntimeError(f"Gemini returned non-JSON twice: {e2}. Raw preview: {preview!r}")
+
+
+def character_context(character_ids):
+    """Return (chars, blocks_text) — the resolved character objects and the
+    markdown block describing each, shared by both generators."""
+    chars = [get_character(cid) for cid in character_ids if get_character(cid)]
+    blocks = [
+        f"## {c['meta'].get('name', c['id'])} ({c['meta'].get('handle', '')})\n{c['body']}"
+        for c in chars
+    ]
+    return chars, "\n\n".join(blocks)
+
+
+LORE_POST_LIMIT = 20  # how many recent author-written posts feed back as canon
+
+def build_lore_context(limit=LORE_POST_LIMIT):
+    """The most recent posts the author wrote by hand (authored=True), formatted
+    as canon other characters can react to. Returns "" if there are none."""
+    authored = [p for p in read_json(POSTS_FILE, {"posts": []})["posts"] if p.get("authored")]
+    if not authored:
+        return ""
+    authored.sort(key=lambda p: p.get("created", 0))
+    lines = []
+    for p in authored[-limit:]:
+        c = get_character(p.get("character_id", ""))
+        name = (c["meta"].get("name") if c else None) or p.get("character_id", "someone")
+        lines.append(f"- {name}: {p.get('text', '').strip()}")
+    return "\n".join(lines)
+
+def lore_block():
+    """A system-prompt section of recent author-written posts, or "" if none.
+    Shared by both generators so hand-written posts become material for others."""
+    lore = build_lore_context()
+    if not lore:
+        return ""
+    return (
+        "\n\nTHE FEED SO FAR (canon — recent posts other residents actually made on Almanapp. "
+        "This is an ongoing conversation your characters are part of and have seen):\n" + lore
+    )
+
+
 def generate_reactions(event, character_ids, n_per_character=1):
     """For a given event and selected characters, ask Gemini for in-character posts."""
     world = build_world_context()
-    chars = [get_character(cid) for cid in character_ids if get_character(cid)]
-
-    char_blocks = []
-    for c in chars:
-        char_blocks.append(
-            f"## {c['meta'].get('name', c['id'])} ({c['meta'].get('handle', '')})\n"
-            f"{c['body']}"
-        )
+    _, char_blocks = character_context(character_ids)
 
     system = (
         "You are writing posts for ALMANAPP, the in-world social network of TRIBORO. "
@@ -358,7 +439,7 @@ def generate_reactions(event, character_ids, n_per_character=1):
         "no exposition, no fourth-wall breaks. Mundane treated as cosmic, weirdness treated as ordinary. "
         "Funny, dry, character-driven. Onion-style.\n\n"
         f"WORLD:\n{world}\n\n"
-        "CHARACTERS:\n" + "\n\n".join(char_blocks)
+        "CHARACTERS:\n" + char_blocks + lore_block()
     )
 
     user = (
@@ -368,39 +449,16 @@ def generate_reactions(event, character_ids, n_per_character=1):
         "each one fully in their voice. The post should reflect their obsessions, their voice, "
         "and the event — but it should feel ambient, not announcement-y. Some characters might "
         "barely acknowledge the event and post about something tangential.\n\n"
+        "Where it genuinely fits a character's voice, have them engage with THE FEED SO FAR — "
+        "reply to, agree with, needle, worry about, or nurse a grudge over something another "
+        "resident recently posted. Don't force it on every post; let it happen where it's natural.\n\n"
         "Return ONLY a JSON array, no markdown, no code fences. Each item: "
         '{"character_id": "<id>", "text": "<the post>"}. '
         f"Use these character ids: {', '.join(character_ids)}."
     )
     # Headroom: 10 posts × ~250 tokens each + JSON wrapper. 4000 keeps slack
     # so the response doesn't truncate mid-string.
-    raw = gemini_generate(system, user, max_tokens=4000)
-
-    def _strip_fences(s):
-        s = s.strip()
-        if s.startswith("```"):
-            s = re.sub(r"^```(?:json)?\n?", "", s)
-            s = re.sub(r"\n?```$", "", s)
-        return s
-
-    raw = _strip_fences(raw)
-    try:
-        posts = json.loads(raw)
-    except json.JSONDecodeError as e:
-        # One retry with a stricter reminder. Most failures are unescaped quotes
-        # inside a post body or a stray trailing comma.
-        retry_user = user + (
-            "\n\nIMPORTANT: Your previous response could not be parsed as JSON. "
-            "Return ONLY a valid JSON array. No code fences. Do not include "
-            "trailing commas. Escape every internal double-quote with \\\"."
-        )
-        raw2 = _strip_fences(gemini_generate(system, retry_user, max_tokens=4000))
-        try:
-            posts = json.loads(raw2)
-        except json.JSONDecodeError as e2:
-            # Surface the raw response so the author can see what went wrong.
-            preview = raw2[:400].replace("\n", " ")
-            raise RuntimeError(f"Gemini returned non-JSON twice: {e2}. Raw preview: {preview!r}")
+    posts = gemini_json(system, user, max_tokens=4000)
 
     now = int(time.time())
     event_offset = int(event.get("triboro_offset") or 0)
@@ -420,6 +478,86 @@ def generate_reactions(event, character_ids, n_per_character=1):
             "triboro_offset": offset,
         })
     return out
+
+
+def generate_from_story(story, doc_text, character_ids, n_events=3, n_per_character=1):
+    """Read the author's prose for a story and derive draft material from it:
+    up to n_events event headlines, plus in-character posts reacting to them.
+    Returns (events, posts); posts are drafts already linked to the new events."""
+    world = build_world_context()
+    _, char_blocks = character_context(character_ids)
+
+    system = (
+        "You are the story editor for ALMANAPP, the in-world social network of TRIBORO. "
+        "The author gives you a short story (or longer document) set inside Triboro — treat it as "
+        "canon, things that actually happened. Turn it into (1) a few EVENT headlines: the concrete, "
+        "public, observable happenings the writing implies, titled the way a resident would, and "
+        "(2) short in-character POSTS reacting to those events. Posts are 1-3 sentences, casual, "
+        "fully in voice, no exposition, no fourth-wall breaks. Mundane treated as cosmic, weirdness "
+        "treated as ordinary. Funny, dry, character-driven. Onion-style.\n\n"
+        f"WORLD:\n{world}\n\n"
+        "CHARACTERS:\n" + char_blocks + lore_block()
+    )
+
+    user = (
+        "AUTHOR'S WRITING (canon — everything below actually happened in Triboro):\n"
+        f"{doc_text}\n\n"
+        f"Derive up to {n_events} EVENT headline(s) from this writing — the concrete public happenings "
+        "a resident would notice. Each event: a short `title` and a 1-2 sentence `description`. "
+        "Order them as they occur in the writing.\n\n"
+        f"Then write {n_per_character} short post(s) per character reacting to these events, each fully "
+        "in that character's voice and obsessions. Tie each post to one event by its index. Some "
+        "characters might react only obliquely, or to the mood rather than the facts.\n\n"
+        "Return ONLY JSON, no markdown, no code fences, in exactly this shape:\n"
+        '{"events": [{"title": "...", "description": "..."}], '
+        '"posts": [{"character_id": "<id>", "event_index": 0, "text": "..."}]}\n'
+        f"Use only these character ids: {', '.join(character_ids)}. "
+        "event_index is the 0-based position of the event in the events array."
+    )
+
+    data = gemini_json(system, user, max_tokens=4000)
+    raw_events = (data.get("events") or [])[:n_events]
+    raw_posts = data.get("posts") or []
+
+    now = int(time.time())
+    events = []
+    for e in raw_events:
+        title = (e.get("title") or "").strip()
+        if not title:
+            continue
+        events.append({
+            "id": uuid.uuid4().hex[:10],
+            "title": title,
+            "description": (e.get("description") or "").strip(),
+            "created": now,
+            "triboro_offset": 0,
+            "source_story_id": story["id"],
+        })
+
+    posts = []
+    for p in raw_posts:
+        cid = (p.get("character_id") or "").strip()
+        text = (p.get("text") or "").strip()
+        if not cid or not text or not get_character(cid):
+            continue
+        idx = p.get("event_index")
+        if isinstance(idx, int) and 0 <= idx < len(events):
+            event_id = events[idx]["id"]
+        else:
+            event_id = events[0]["id"] if events else None
+        posts.append({
+            "id": uuid.uuid4().hex[:10],
+            "character_id": cid,
+            "text": text,
+            "event_id": event_id,
+            "created": now,
+            "status": "draft",
+            "pinned": False,
+            "published": False,
+            "triboro_offset": 0,
+            "source_story_id": story["id"],
+        })
+    return events, posts
 
 
 # ─── HTTP handler ─────────────────────────────────────────────────────────
@@ -516,7 +654,16 @@ class Handler(SimpleHTTPRequestHandler):
         if p == "/api/admin/posts":
             return self.send_json(read_json(POSTS_FILE, {"posts": []}))
         if p == "/api/admin/stories":
-            return self.send_json(read_stories())
+            data = read_stories()
+            for s in data["stories"]:
+                s["has_doc"] = bool(read_story_doc(s["id"]).strip())
+            return self.send_json(data)
+        if p.startswith("/api/admin/story/"):
+            sid = p.rsplit("/", 1)[-1]
+            story = find_story(read_stories()["stories"], sid)
+            if not story:
+                return self.send_json({"error": "not found"}, 404)
+            return self.send_json({**story, "doc": read_story_doc(sid)})
         self.send_json({"error": "not found"}, 404)
 
     # admin: POST
@@ -559,12 +706,43 @@ class Handler(SimpleHTTPRequestHandler):
                 "pinned": bool(body.get("pinned")),
                 "published": bool(body.get("published")),
                 "triboro_offset": int(body.get("triboro_offset") or 0),
+                "authored": True,  # hand-written → becomes lore other characters can react to
             }
             data = read_json(POSTS_FILE, {"posts": []})
             data["posts"].insert(0, post)
             write_json(POSTS_FILE, data)
             build_site()
             return self.send_json(post)
+        if p.startswith("/api/admin/story/") and p.endswith("/generate"):
+            sid = p[len("/api/admin/story/"):-len("/generate")]
+            sdata = read_stories()
+            story = find_story(sdata["stories"], sid)
+            if not story:
+                return self.send_json({"error": "story not found"}, 404)
+            doc = read_story_doc(sid)
+            if not doc.strip():
+                return self.send_json({"error": "this story has no writing yet"}, 400)
+            char_ids = body.get("character_ids", [])
+            if not char_ids:
+                return self.send_json({"error": "no characters selected"}, 400)
+            n_events = max(1, min(3, int(body.get("n_events", 3))))
+            n_per = max(1, min(3, int(body.get("n_per_character", 1))))
+            try:
+                new_events, new_posts = generate_from_story(story, doc, char_ids, n_events, n_per)
+            except Exception as e:
+                return self.send_json({"error": str(e)}, 500)
+            # Events go live in the bundle (same as the Events tab); posts are drafts.
+            edata = read_json(EVENTS_FILE, {"events": []})
+            edata["events"] = new_events + edata["events"]
+            write_json(EVENTS_FILE, edata)
+            # Thread the new events onto this story, in order.
+            story["event_ids"] = list(story.get("event_ids", [])) + [e["id"] for e in new_events]
+            write_stories(sdata)
+            pdata = read_json(POSTS_FILE, {"posts": []})
+            pdata["posts"] = new_posts + pdata["posts"]
+            write_json(POSTS_FILE, pdata)
+            build_site()
+            return self.send_json({"events": new_events, "posts": new_posts})
         if p == "/api/admin/story":
             title = (body.get("title") or "").strip()
             if not title:
@@ -814,8 +992,10 @@ class Handler(SimpleHTTPRequestHandler):
                 if not isinstance(eids, list):
                     return self.send_json({"error": "event_ids must be a list"}, 400)
                 story["event_ids"] = [str(x) for x in eids]
+            if "doc" in body:
+                write_story_doc(sid, body["doc"] or "")
             write_stories(data)
-            return self.send_json(story)
+            return self.send_json({**story, "doc": read_story_doc(sid)})
         self.send_json({"error": "not found"}, 404)
 
     # admin: DELETE
@@ -849,6 +1029,7 @@ class Handler(SimpleHTTPRequestHandler):
             data = read_stories()
             data["stories"] = [s for s in data["stories"] if s["id"] != sid]
             write_stories(data)
+            delete_story_doc(sid)
             return self.send_json({"ok": True})
         self.send_json({"error": "not found"}, 404)
 

@@ -5,6 +5,7 @@ const state = {
   events: [],
   posts: [],
   stories: [],
+  storyDocs: {},          // story_id -> prose text, cached across list reloads
   selectedChar: null,
   selectedStoryId: null,
   isNewChar: false,
@@ -281,6 +282,7 @@ function renderPosts() {
         <span class="post-handle">${escapeHtml(handle)}</span>
         <span>
           <span class="offset-tag" title="When this post appears in viewer-time">⏱ ${offsetLabel(p.triboro_offset)}</span>
+          ${p.authored ? '<span class="pinned-tag" title="You wrote this — it feeds future generations as canon">✍︎ canon</span>' : ""}
           ${p.pinned ? '<span class="pinned-tag">📌 PINNED</span>' : ""}
           ${p.published ? '<span class="published-tag">● published</span>' : ""}
         </span>
@@ -599,7 +601,7 @@ function renderStories() {
       li.dataset.id = s.id;
       if (s.id === state.selectedStoryId) li.classList.add("selected");
       const count = (s.event_ids || []).length;
-      li.innerHTML = `<div><strong>${escapeHtml(s.title)}</strong></div>
+      li.innerHTML = `<div><strong>${escapeHtml(s.title)}</strong>${s.has_doc ? ' <span title="has source writing">📄</span>' : ""}</div>
         <div class="meta">${count} event${count === 1 ? "" : "s"}${s.description ? " · " + escapeHtml(truncate(s.description, 60)) : ""}</div>`;
       li.onclick = () => selectStory(s.id);
       list.appendChild(li);
@@ -614,9 +616,31 @@ function renderStories() {
   }
 }
 
-function selectStory(sid) {
+async function selectStory(sid) {
   state.selectedStoryId = sid;
-  renderStories();
+  renderStories();  // highlight + show editor immediately
+  if (state.storyDocs[sid] === undefined) {
+    try {
+      const full = await api("/story/" + sid);
+      state.storyDocs[sid] = full.doc || "";
+      if (state.selectedStoryId === sid) renderStoryEditor();
+    } catch (e) { /* leave doc blank on error */ }
+  }
+}
+
+function renderGenCharPicker() {
+  const el = document.getElementById("story-gen-char-picker");
+  if (!el) return;
+  el.innerHTML = "";
+  for (const c of state.characters) {
+    const label = document.createElement("label");
+    label.innerHTML = `<input type="checkbox" value="${c.id}" checked> ${c.meta.name || c.id}`;
+    el.appendChild(label);
+  }
+}
+
+function getSelectedStoryGenCharIds() {
+  return [...document.querySelectorAll("#story-gen-char-picker input:checked")].map(x => x.value);
 }
 
 function currentStory() {
@@ -633,6 +657,9 @@ function renderStoryEditor() {
   document.getElementById("story-editor-title").textContent = s.title;
   document.getElementById("story-edit-title").value = s.title;
   document.getElementById("story-edit-desc").value = s.description || "";
+  document.getElementById("story-doc").value = state.storyDocs[s.id] || "";
+  document.getElementById("story-doc-upload").value = "";
+  renderGenCharPicker();
 
   const eventsById = Object.fromEntries(state.events.map(e => [e.id, e]));
   const list = document.getElementById("story-events-list");
@@ -779,6 +806,65 @@ document.getElementById("btn-schedule-story").onclick = async () => {
     status.className = "status ok";
     await loadEvents();
     await loadPosts();
+  } catch (e) {
+    status.textContent = "error: " + e.message; status.className = "status err";
+  }
+};
+
+document.getElementById("story-doc-upload").onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const status = document.getElementById("story-doc-status");
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById("story-doc").value = reader.result;
+    status.textContent = `loaded ${file.name} — review, then Save writing`;
+    status.className = "status ok";
+  };
+  reader.onerror = () => { status.textContent = "could not read file"; status.className = "status err"; };
+  reader.readAsText(file);
+};
+
+document.getElementById("btn-save-doc").onclick = async () => {
+  const s = currentStory();
+  if (!s) return;
+  const status = document.getElementById("story-doc-status");
+  const doc = document.getElementById("story-doc").value;
+  status.textContent = "saving..."; status.className = "status";
+  try {
+    const updated = await api("/story/" + s.id, { method: "PUT", body: { doc } });
+    state.storyDocs[s.id] = updated.doc || "";
+    status.textContent = "saved"; status.className = "status ok";
+    await loadStories();   // refresh the 📄 has_doc flag
+    renderStories();
+  } catch (e) {
+    status.textContent = "error: " + e.message; status.className = "status err";
+  }
+};
+
+document.getElementById("btn-generate-story").onclick = async () => {
+  const s = currentStory();
+  if (!s) return;
+  const status = document.getElementById("story-gen-status");
+  if (!(state.storyDocs[s.id] || "").trim()) {
+    status.textContent = "save some writing first"; status.className = "status err"; return;
+  }
+  const charIds = getSelectedStoryGenCharIds();
+  if (charIds.length === 0) { status.textContent = "pick at least one character"; status.className = "status err"; return; }
+  const nEvents = parseInt(document.getElementById("story-gen-n-events").value, 10) || 3;
+  const nPer = parseInt(document.getElementById("story-gen-n-per").value, 10) || 1;
+  status.textContent = "generating from the writing… (~10s)"; status.className = "status";
+  try {
+    const r = await api("/story/" + s.id + "/generate", {
+      method: "POST",
+      body: { character_ids: charIds, n_events: nEvents, n_per_character: nPer },
+    });
+    status.textContent = `created ${r.events.length} event${r.events.length === 1 ? "" : "s"} + ${r.posts.length} draft post${r.posts.length === 1 ? "" : "s"} → curate in Posts, then Schedule this story`;
+    status.className = "status ok";
+    await loadEvents();
+    await loadPosts();
+    await loadStories();
+    renderStories();   // re-renders editor with the new events threaded in
   } catch (e) {
     status.textContent = "error: " + e.message; status.className = "status err";
   }

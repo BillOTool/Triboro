@@ -168,6 +168,33 @@
             <span id="story-edit-status" class="status"></span>
           </div>
 
+          <h3 style="margin-top:18px;">Source writing</h3>
+          <p class="hint">The short story or longer doc this thread is built from. Type it here or upload a <code>.md</code>/<code>.txt</code> file. It never ships to the public feed — it's the material the generator reads to derive events and posts below.</p>
+          <div class="row">
+            <input type="file" id="story-doc-upload" accept=".md,.markdown,.txt,text/plain,text/markdown" style="flex:1;">
+          </div>
+          <textarea id="story-doc" rows="14" placeholder="Write or paste the story here. Anything in here is treated as canon — things that actually happened in Triboro." style="width:100%;"></textarea>
+          <div class="row">
+            <button type="button" id="btn-save-doc">Save writing</button>
+            <span id="story-doc-status" class="status"></span>
+          </div>
+
+          <h3 style="margin-top:18px;">Generate events + posts from the writing</h3>
+          <p class="hint">Derives up to 3 event headlines from the writing and writes in-character posts reacting to them. Events go live in the feed; posts arrive as drafts — curate them in Posts, then use “Schedule this story” below to time and publish.</p>
+          <div id="story-gen-char-picker" class="char-picker"></div>
+          <div class="row">
+            <label>events to derive:
+              <select id="story-gen-n-events">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>up to 3</option>
+              </select>
+            </label>
+            <label>posts per character: <input id="story-gen-n-per" type="number" value="1" min="1" max="3" style="width:50px"></label>
+            <button type="button" id="btn-generate-story" class="primary">Generate events + posts</button>
+            <span id="story-gen-status" class="status"></span>
+          </div>
+
           <h3 style="margin-top:18px;">Events in this story (in order)</h3>
           <p class="hint">Top of the list lands first in viewer-time. Drag with the ↑/↓ buttons.</p>
           <ul id="story-events-list" class="list story-events"></ul>
