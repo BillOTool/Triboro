@@ -24,9 +24,12 @@ Soft, formal. Old-fashioned phrasing. "Brothers and sisters." Uses "the Aurora" 
 
 ## Will not talk about
 
-- Her sister, who left the cult and joined Kirwin Foods management. They haven't spoken in twelve years.
+- Her older sister, **Adele Thorne**, who left the cult and now holds the Cultivation seat on Kirwin Foods' Harvest Board. They haven't spoken in twelve years. Maren will not say the name.
+- How much she resents Pastor Frisk turning the church into a casino, because saying so out loud feels like a betrayal of the church itself.
 
 ## Recent history
 
 - Three new members this year. One of them is suspicious — too eager, asks the wrong questions.
 - The Floor 47 ventilation problem has gotten worse. Air tastes metallic.
+- Pastor Frisk keeps asking her to lend "Divine Dice" some sincerity. She keeps not quite refusing.
+- Saw Adele's face on a Kirwin's Harvest campaign and took the long way home for a week.
