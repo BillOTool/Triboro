@@ -23,6 +23,7 @@ CHARS_DIR = os.path.join(DATA, "characters")
 EVENTS_FILE = os.path.join(DATA, "events.json")
 POSTS_FILE = os.path.join(DATA, "posts.json")
 WORLD_FILE = os.path.join(DATA, "world.md")
+SAMPLE_POSTS_FILE = os.path.join(DATA, "lore", "sample-posts.md")
 SITE_FILE = os.path.join(DATA, "site.json")
 RESIDENTS_FILE = os.path.join(DATA, "residents.json")
 CHATS_FILE = os.path.join(DATA, "chats.json")
@@ -427,6 +428,54 @@ def lore_block():
     )
 
 
+VOICE_SAMPLES_PER_SECTION = 3  # how many exemplars to draw from each author type
+
+def _parse_sample_posts():
+    """Parse data/lore/sample-posts.md into {section_label: [post, ...]}.
+    Sections are '## ' headers; posts are '- ' bullets under them."""
+    if not os.path.exists(SAMPLE_POSTS_FILE):
+        return {}
+    sections = {}
+    current = None
+    with open(SAMPLE_POSTS_FILE) as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if line.startswith("## "):
+                current = line[3:].strip()
+                sections[current] = []
+            elif line.startswith("- ") and current:
+                sections[current].append(line[2:].strip())
+    return {k: v for k, v in sections.items() if v}
+
+
+def build_voice_context(per_section=VOICE_SAMPLES_PER_SECTION):
+    """A rotating sample of canonical example posts, grouped by author type, so
+    the generator matches Triboro's house voice. Returns "" if the file is gone."""
+    sections = _parse_sample_posts()
+    if not sections:
+        return ""
+    lines = []
+    for label, posts in sections.items():
+        picks = random.sample(posts, min(per_section, len(posts)))
+        lines.append(f"[{label}]")
+        lines.extend(f"- {p}" for p in picks)
+        lines.append("")
+    return "\n".join(lines).strip()
+
+
+def voice_block():
+    """A system-prompt section of house-voice exemplars, or "" if none. Shared by
+    both generators so posts match the established Triboro tone and rhythm."""
+    voice = build_voice_context()
+    if not voice:
+        return ""
+    return (
+        "\n\nHOUSE VOICE (canon example posts by author type — match their texture, "
+        "rhythm, and deadpan. These are style reference ONLY; never copy them "
+        "verbatim or reuse their specifics):\n" + voice
+    )
+
+
 def generate_reactions(event, character_ids, n_per_character=1):
     """For a given event and selected characters, ask Gemini for in-character posts."""
     world = build_world_context()
@@ -439,7 +488,7 @@ def generate_reactions(event, character_ids, n_per_character=1):
         "no exposition, no fourth-wall breaks. Mundane treated as cosmic, weirdness treated as ordinary. "
         "Funny, dry, character-driven. Onion-style.\n\n"
         f"WORLD:\n{world}\n\n"
-        "CHARACTERS:\n" + char_blocks + lore_block()
+        "CHARACTERS:\n" + char_blocks + voice_block() + lore_block()
     )
 
     user = (
@@ -496,7 +545,7 @@ def generate_from_story(story, doc_text, character_ids, n_events=3, n_per_charac
         "fully in voice, no exposition, no fourth-wall breaks. Mundane treated as cosmic, weirdness "
         "treated as ordinary. Funny, dry, character-driven. Onion-style.\n\n"
         f"WORLD:\n{world}\n\n"
-        "CHARACTERS:\n" + char_blocks + lore_block()
+        "CHARACTERS:\n" + char_blocks + voice_block() + lore_block()
     )
 
     user = (

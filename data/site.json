@@ -1,6 +1,24 @@
 {
-  "generated": 1778642068,
+  "generated": 1784082523,
   "characters": [
+    {
+      "id": "chief_dabrowski",
+      "name": "Chief Ron Dabrowski",
+      "handle": "@ChiefDabrowski",
+      "floor": "8",
+      "avatar": "\ud83e\uddf6",
+      "faction": "Security Branch",
+      "tags": "[security-chief, handicrafts, thin-skinned]"
+    },
+    {
+      "id": "doris_shemp",
+      "name": "Doris Shemp",
+      "handle": "@DorisShemp",
+      "floor": "Basement",
+      "avatar": "\ud83e\udea0",
+      "faction": "League of Trades",
+      "tags": "[league-president, ex-plumber, union-boss]"
+    },
     {
       "id": "gus_pelletier",
       "name": "Gus Pelletier",
@@ -20,6 +38,15 @@
       "tags": "[seamstress, anxious, suspicious-wife]"
     },
     {
+      "id": "old_man_kirwin",
+      "name": "Old Man Kirwin",
+      "handle": "@OldManKirwin",
+      "floor": "59",
+      "avatar": "\ud83c\udf3d",
+      "faction": "Kirwin Foods",
+      "tags": "[figurehead, ancient, still-in-charge]"
+    },
+    {
       "id": "rita_cheng",
       "name": "Rita Cheng",
       "handle": "@RitaCheng",
@@ -27,6 +54,15 @@
       "avatar": "\ud83c\udf3f",
       "faction": "none",
       "tags": "[gardener, gossip, lost-cat]"
+    },
+    {
+      "id": "shannon_wascombe",
+      "name": "Shannon Wascombe",
+      "handle": "@ShannonWascombe",
+      "floor": "44",
+      "avatar": "\ud83d\udcd5",
+      "faction": "none",
+      "tags": "[novelist, dutch-melton, national-security-pundit]"
     },
     {
       "id": "sister_maren",
@@ -45,6 +81,15 @@
       "avatar": "\ud83c\udfac",
       "faction": "none",
       "tags": "[theater, performer, gossip-magnet]"
+    },
+    {
+      "id": "ward_babbage",
+      "name": "Ward Babbage",
+      "handle": "@WardBabbage",
+      "floor": "31",
+      "avatar": "\ud83d\udcf0",
+      "faction": "none",
+      "tags": "[journalist, babbage-press, security-beat]"
     }
   ],
   "events": [
