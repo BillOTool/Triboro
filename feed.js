@@ -306,18 +306,27 @@ function renderFeed() {
   ROOT.innerHTML = html;
 }
 
-function renderPeople() {
-  const cards = SITE.characters.map(c => `
+function personCard(c) {
+  return `
     <div class="person-card" onclick="location.hash='#/c/${c.id}'">
       <div class="avatar">${c.avatar || "👤"}</div>
       <div class="name">${esc(c.name || c.id)}</div>
       <div class="handle">${esc(c.handle || "")}</div>
       <div class="meta">${c.floor ? `Floor ${esc(c.floor)}` : ""}${c.faction && c.faction !== "none" ? ` · ${esc(c.faction)}` : ""}</div>
-    </div>
-  `).join("");
-  ROOT.innerHTML = `
-    <div class="section-label">Residents on Almanapp</div>
-    <div class="people-grid">${cards}</div>`;
+    </div>`;
+}
+
+function renderPeople() {
+  // Principals (the named cast) are featured; background residents fill out the
+  // building below. Everyone is clickable and messageable either way.
+  const principals = SITE.characters.filter(c => c.tier !== "background");
+  const background = SITE.characters.filter(c => c.tier === "background");
+  const grid = list => `<div class="people-grid">${list.map(personCard).join("")}</div>`;
+  let html = `<div class="section-label">Notable residents</div>${grid(principals)}`;
+  if (background.length) {
+    html += `<div class="section-label">The rest of the building · ${background.length}</div>${grid(background)}`;
+  }
+  ROOT.innerHTML = html;
 }
 
 function renderEvents() {

@@ -76,32 +76,52 @@ def parse_md(text):
 def char_id_from_filename(fname):
     return os.path.splitext(fname)[0]
 
+def _iter_char_files():
+    """Yield every character .md path under CHARS_DIR, including subfolders like
+    characters/residents/ (background NPCs). IDs are the bare filename stem, so
+    they must stay unique across folders."""
+    if not os.path.isdir(CHARS_DIR):
+        return
+    for root, _dirs, files in os.walk(CHARS_DIR):
+        for f in sorted(files):
+            if f.endswith(".md"):
+                yield os.path.join(root, f)
+
+def _char_file_path(cid):
+    """Resolve a character id to its .md path, searching subfolders. Top-level
+    first (fast path for principals), then a walk for residents/."""
+    top = os.path.join(CHARS_DIR, f"{cid}.md")
+    if os.path.exists(top):
+        return top
+    for path in _iter_char_files():
+        if char_id_from_filename(os.path.basename(path)) == cid:
+            return path
+    return None
+
 def list_characters():
     out = []
-    if not os.path.isdir(CHARS_DIR):
-        return out
-    for f in sorted(os.listdir(CHARS_DIR)):
-        if not f.endswith(".md"):
-            continue
-        with open(os.path.join(CHARS_DIR, f)) as fh:
+    for path in _iter_char_files():
+        with open(path) as fh:
             meta, body = parse_md(fh.read())
         out.append({
-            "id": char_id_from_filename(f),
+            "id": char_id_from_filename(os.path.basename(path)),
             "meta": meta,
             "body": body,
         })
+    out.sort(key=lambda c: c["id"])
     return out
 
 def get_character(cid):
-    path = os.path.join(CHARS_DIR, f"{cid}.md")
-    if not os.path.exists(path):
+    path = _char_file_path(cid)
+    if not path:
         return None
     with open(path) as f:
-        meta, body = parse_md(f.read())
-    return {"id": cid, "meta": meta, "body": body, "raw": open(path).read()}
+        raw = f.read()
+    meta, body = parse_md(raw)
+    return {"id": cid, "meta": meta, "body": body, "raw": raw}
 
 def save_character(cid, raw):
-    path = os.path.join(CHARS_DIR, f"{cid}.md")
+    path = _char_file_path(cid) or os.path.join(CHARS_DIR, f"{cid}.md")
     with open(path, "w") as f:
         f.write(raw)
 
@@ -309,7 +329,7 @@ def next_queue_order():
 
 # ─── public site bundle ──────────────────────────────────────────────────
 
-PUBLIC_CHAR_KEYS = {"name", "handle", "floor", "avatar", "faction", "tags"}
+PUBLIC_CHAR_KEYS = {"name", "handle", "floor", "avatar", "faction", "tags", "tier"}
 
 def build_site():
     """Compile data/site.json — everything the public feed needs."""
@@ -527,6 +547,75 @@ def generate_reactions(event, character_ids, n_per_character=1):
             "triboro_offset": offset,
         })
     return out
+
+
+def _dedup_posts(posts, seen=None):
+    """Drop posts whose text is a near-duplicate of one already kept."""
+    seen = seen if seen is not None else set()
+    out = []
+    for p in posts:
+        key = re.sub(r"\s+", " ", (p.get("text") or "").strip().lower())
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(p)
+    return out
+
+
+def generate_event_reactions(event, character_ids, n_per_character=1, rounds=1):
+    """DEPTH: many varied posts about the SAME event from a chosen set of
+    characters. Runs `rounds` reaction passes (the rotating house-voice sampler
+    gives each pass different flavor) and dedups. Use when you want a normal
+    event to have more chatter than one pass produces."""
+    seen, out = set(), []
+    for _ in range(max(1, rounds)):
+        try:
+            batch = generate_reactions(event, character_ids, n_per_character)
+        except Exception:
+            continue
+        out.extend(_dedup_posts(batch, seen))
+    return out
+
+
+# Split a huge selection into per-call chunks; ~9 characters keeps one call
+# safely under the 4000-token output cap.
+CROWD_CHUNK_SIZE = 9
+
+def generate_crowd_reactions(event, target_count=120, pool_ids=None,
+                             chunk_size=CROWD_CHUNK_SIZE, n_per_character=1,
+                             max_calls=None, progress=None):
+    """HUGE EVENT: fan a tentpole announcement out across the whole population.
+    Draws from `pool_ids` (default: every character — principals + background),
+    shuffles, and generates in chunks across many Gemini calls until it has
+    ~target_count deduped posts, cycling the pool for extra rounds if the target
+    exceeds the roster. `progress(done, target)` is called after each chunk."""
+    pool = list(pool_ids) if pool_ids is not None else [c["id"] for c in list_characters()]
+    if not pool:
+        return []
+    random.shuffle(pool)
+    seen, out = set(), []
+    i = 0
+    calls = 0
+    cap = max_calls if max_calls is not None else (target_count // max(1, chunk_size)) * 3 + 6
+    while len(out) < target_count and calls < cap:
+        chunk = pool[i:i + chunk_size]
+        i += chunk_size
+        if not chunk:                 # wrapped the pool — reshuffle for another round
+            random.shuffle(pool)
+            i = 0
+            continue
+        calls += 1
+        try:
+            batch = generate_reactions(event, chunk, n_per_character)
+        except Exception:
+            continue
+        for p in _dedup_posts(batch, seen):
+            out.append(p)
+            if len(out) >= target_count:
+                break
+        if progress:
+            progress(len(out), target_count)
+    return out[:target_count]
 
 
 def generate_from_story(story, doc_text, character_ids, n_events=3, n_per_character=1):
