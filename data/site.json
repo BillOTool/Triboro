@@ -1,5 +1,5 @@
 {
-  "generated": 1784086155,
+  "generated": 1784087953,
   "characters": [
     {
       "id": "adele_thorne",
@@ -113,6 +113,16 @@
       "tier": "background"
     },
     {
+      "id": "res_cheryl_amsel",
+      "name": "Cheryl Amsel",
+      "handle": "@CherylAmsel",
+      "floor": "39",
+      "avatar": "\ud83e\udde6",
+      "faction": "none",
+      "tags": "[background, apostate, bitter]",
+      "tier": "background"
+    },
+    {
       "id": "res_cheryl_denk",
       "name": "Cheryl Denk",
       "handle": "@CherylDenk",
@@ -120,6 +130,26 @@
       "avatar": "\ud83c\udf5c",
       "faction": "Kirwin Foods",
       "tags": "[background, Nostalgic, Persistent]",
+      "tier": "background"
+    },
+    {
+      "id": "res_cheryl_dunkel",
+      "name": "Cheryl Dunkel",
+      "handle": "@CherylDunkel",
+      "floor": "43",
+      "avatar": "\ud83e\uddc5",
+      "faction": "Kirwin Foods",
+      "tags": "[background, rumor, kirwin]",
+      "tier": "background"
+    },
+    {
+      "id": "res_chuck_barlow",
+      "name": "Chuck Barlow",
+      "handle": "@ChuckBarlow",
+      "floor": "25",
+      "avatar": "\ud83d\udd6f\ufe0f",
+      "faction": "Kirwin Foods",
+      "tags": "[background, booster, kirwin]",
       "tier": "background"
     },
     {
@@ -143,6 +173,16 @@
       "tier": "background"
     },
     {
+      "id": "res_coco_ochoa",
+      "name": "Coco Ochoa",
+      "handle": "@CocoOchoa",
+      "floor": "59",
+      "avatar": "\ud83d\udd0c",
+      "faction": "League of Trades",
+      "tags": "[background, wellness, potluck]",
+      "tier": "background"
+    },
+    {
       "id": "res_coco_ruttle",
       "name": "Coco Ruttle",
       "handle": "@CocoRuttle",
@@ -150,6 +190,36 @@
       "avatar": "\ud83c\udccf",
       "faction": "League of Trades",
       "tags": "[background, Watchdog, Pedantic]",
+      "tier": "background"
+    },
+    {
+      "id": "res_curtis_hupp",
+      "name": "Curtis Hupp",
+      "handle": "@CurtisHupp",
+      "floor": "60",
+      "avatar": "\ud83e\udde6",
+      "faction": "none",
+      "tags": "[background, booster, convert]",
+      "tier": "background"
+    },
+    {
+      "id": "res_curtis_kettleman",
+      "name": "Curtis Kettleman",
+      "handle": "@CurtisKettleman",
+      "floor": "38",
+      "avatar": "\ud83e\uddeb",
+      "faction": "League of Trades",
+      "tags": "[background, league, spooked]",
+      "tier": "background"
+    },
+    {
+      "id": "res_deb_coyle",
+      "name": "Deb Coyle",
+      "handle": "@DebCoyle",
+      "floor": "22",
+      "avatar": "\ud83c\udfad",
+      "faction": "none",
+      "tags": "[background, rumor, coyle]",
       "tier": "background"
     },
     {
@@ -193,6 +263,16 @@
       "tier": "background"
     },
     {
+      "id": "res_dot_amsel",
+      "name": "Dot Amsel",
+      "handle": "@DotAmsel",
+      "floor": "6",
+      "avatar": "\ud83d\udee0\ufe0f",
+      "faction": "League of Trades",
+      "tags": "[background, hoa, loanshark]",
+      "tier": "background"
+    },
+    {
       "id": "res_dot_rhee",
       "name": "Dot Rhee",
       "handle": "@DotRhee",
@@ -200,6 +280,56 @@
       "avatar": "\ud83e\udeb4",
       "faction": "none",
       "tags": "[background, Parent, Watchdog]",
+      "tier": "background"
+    },
+    {
+      "id": "res_dot_voll",
+      "name": "Dot Voll",
+      "handle": "@DotVoll",
+      "floor": "59",
+      "avatar": "\ud83c\udfb3",
+      "faction": "Aurora Cult",
+      "tags": "[background, cult, elderly]",
+      "tier": "background"
+    },
+    {
+      "id": "res_duane_gonsalves",
+      "name": "Duane Gonsalves",
+      "handle": "@DuaneGonsalves",
+      "floor": "57",
+      "avatar": "\ud83e\uddf0",
+      "faction": "none",
+      "tags": "[background, inventor, hazard]",
+      "tier": "background"
+    },
+    {
+      "id": "res_duane_trupp",
+      "name": "Duane Trupp",
+      "handle": "@DuaneTrupp",
+      "floor": "31",
+      "avatar": "\ud83d\udd6f\ufe0f",
+      "faction": "Kirwin Foods",
+      "tags": "[background, burnout, clout]",
+      "tier": "background"
+    },
+    {
+      "id": "res_dwayne_ng",
+      "name": "Dwayne Ng",
+      "handle": "@DwayneNg",
+      "floor": "22",
+      "avatar": "\ud83d\udd6f\ufe0f",
+      "faction": "none",
+      "tags": "[background, rumor, burnout]",
+      "tier": "background"
+    },
+    {
+      "id": "res_dwayne_ochoa",
+      "name": "Dwayne Ochoa",
+      "handle": "@DwayneOchoa",
+      "floor": "24",
+      "avatar": "\ud83e\uddeb",
+      "faction": "none",
+      "tags": "[background, gambler, sports]",
       "tier": "background"
     },
     {
@@ -213,6 +343,16 @@
       "tier": "background"
     },
     {
+      "id": "res_earl_achebe",
+      "name": "Earl Achebe",
+      "handle": "@EarlAchebe",
+      "floor": "48",
+      "avatar": "\ud83e\uddfb",
+      "faction": "Kirwin Foods",
+      "tags": "[background, sportsparent, blackmarket]",
+      "tier": "background"
+    },
+    {
       "id": "res_earl_dobody",
       "name": "Earl Dobody",
       "handle": "@EarlDobody",
@@ -223,6 +363,36 @@
       "tier": "background"
     },
     {
+      "id": "res_earl_loomis",
+      "name": "Earl Loomis",
+      "handle": "@EarlLoomis",
+      "floor": "57",
+      "avatar": "\ud83e\ude79",
+      "faction": "none",
+      "tags": "[background, booster, bandwagon]",
+      "tier": "background"
+    },
+    {
+      "id": "res_earl_vane",
+      "name": "Earl Vane",
+      "handle": "@EarlVane",
+      "floor": "53",
+      "avatar": "\ud83e\udd74",
+      "faction": "Security Branch",
+      "tags": "[background, conspiracy, hoa]",
+      "tier": "background"
+    },
+    {
+      "id": "res_elba_dobody",
+      "name": "Elba Dobody",
+      "handle": "@ElbaDobody",
+      "floor": "42",
+      "avatar": "\ud83e\udd4d",
+      "faction": "none",
+      "tags": "[background, wellness, complainer]",
+      "tier": "background"
+    },
+    {
       "id": "res_elba_feltz",
       "name": "Elba Feltz",
       "handle": "@ElbaFeltz",
@@ -230,6 +400,16 @@
       "avatar": "\ud83e\udd4d",
       "faction": "League of Trades",
       "tags": "[background, skeptic, witness]",
+      "tier": "background"
+    },
+    {
+      "id": "res_elba_prusak",
+      "name": "Elba Prusak",
+      "handle": "@ElbaPrusak",
+      "floor": "37",
+      "avatar": "\ud83d\udc07",
+      "faction": "none",
+      "tags": "[background, conspiracy, clout]",
       "tier": "background"
     },
     {
@@ -253,6 +433,26 @@
       "tier": "background"
     },
     {
+      "id": "res_faye_sweetin",
+      "name": "Faye Sweetin",
+      "handle": "@FayeSweetin",
+      "floor": "4",
+      "avatar": "\ud83e\udeb4",
+      "faction": "none",
+      "tags": "[background, sportsparent, spooked]",
+      "tier": "background"
+    },
+    {
+      "id": "res_fitz_coyle",
+      "name": "Fitz Coyle",
+      "handle": "@FitzCoyle",
+      "floor": "11",
+      "avatar": "\ud83e\udde6",
+      "faction": "none",
+      "tags": "[background, spooked, coyle]",
+      "tier": "background"
+    },
+    {
       "id": "res_fitz_mancuso",
       "name": "Fitz Mancuso",
       "handle": "@FitzMancuso",
@@ -270,6 +470,26 @@
       "avatar": "\ud83e\ude9b",
       "faction": "Kirwin Foods",
       "tags": "[background, Kirwins, Creditor]",
+      "tier": "background"
+    },
+    {
+      "id": "res_gene_achebe",
+      "name": "Gene Achebe",
+      "handle": "@GeneAchebe",
+      "floor": "44",
+      "avatar": "\ud83d\udc1f",
+      "faction": "League of Trades",
+      "tags": "[background, rumor, league]",
+      "tier": "background"
+    },
+    {
+      "id": "res_gil_mancuso",
+      "name": "Gil Mancuso",
+      "handle": "@GilMancuso",
+      "floor": "36",
+      "avatar": "\ud83e\uddc5",
+      "faction": "Kirwin Foods",
+      "tags": "[background, kirwin, hypocrite]",
       "tier": "background"
     },
     {
@@ -293,6 +513,16 @@
       "tier": "background"
     },
     {
+      "id": "res_hal_bugg",
+      "name": "Hal Bugg",
+      "handle": "@HalBugg",
+      "floor": "58",
+      "avatar": "\ud83e\udde2",
+      "faction": "none",
+      "tags": "[background, blackmarket, inventor]",
+      "tier": "background"
+    },
+    {
       "id": "res_hal_fiore",
       "name": "Hal Fiore",
       "handle": "@HalFiore",
@@ -300,6 +530,16 @@
       "avatar": "\ud83e\udeb4",
       "faction": "none",
       "tags": "[background, Fanatic, Theorist]",
+      "tier": "background"
+    },
+    {
+      "id": "res_hal_krajewski",
+      "name": "Hal Krajewski",
+      "handle": "@HalKrajewski",
+      "floor": "23",
+      "avatar": "\ud83c\udf5c",
+      "faction": "none",
+      "tags": "[background, burnout, lonely]",
       "tier": "background"
     },
     {
@@ -313,6 +553,36 @@
       "tier": "background"
     },
     {
+      "id": "res_hank_kwiatkowski",
+      "name": "Hank Kwiatkowski",
+      "handle": "@HankKwiatkowski",
+      "floor": "25",
+      "avatar": "\ud83e\udd4d",
+      "faction": "none",
+      "tags": "[background, lost, hoa]",
+      "tier": "background"
+    },
+    {
+      "id": "res_hank_salcido",
+      "name": "Hank Salcido",
+      "handle": "@HankSalcido",
+      "floor": "22",
+      "avatar": "\ud83e\uddfc",
+      "faction": "Kirwin Foods",
+      "tags": "[background, washout, kirwin]",
+      "tier": "background"
+    },
+    {
+      "id": "res_hank_wetzel",
+      "name": "Hank Wetzel",
+      "handle": "@HankWetzel",
+      "floor": "31",
+      "avatar": "\ud83e\uddeb",
+      "faction": "none",
+      "tags": "[background, hoa, gambler]",
+      "tier": "background"
+    },
+    {
       "id": "res_imani_bracco",
       "name": "Imani Bracco",
       "handle": "@ImaniBracco",
@@ -323,6 +593,16 @@
       "tier": "background"
     },
     {
+      "id": "res_ines_denk",
+      "name": "Ines Denk",
+      "handle": "@InesDenk",
+      "floor": "31",
+      "avatar": "\ud83e\udde6",
+      "faction": "Kirwin Foods",
+      "tags": "[background, feud, kirwin]",
+      "tier": "background"
+    },
+    {
       "id": "res_lorna_dobody",
       "name": "Lorna Dobody",
       "handle": "@LornaDobody",
@@ -330,6 +610,26 @@
       "avatar": "\ud83c\udf7a",
       "faction": "none",
       "tags": "[background, Aspiring, Cringey]",
+      "tier": "background"
+    },
+    {
+      "id": "res_lorna_loomis",
+      "name": "Lorna Loomis",
+      "handle": "@LornaLoomis",
+      "floor": "59",
+      "avatar": "\ud83d\udee0\ufe0f",
+      "faction": "Security Branch",
+      "tags": "[background, washout, retired]",
+      "tier": "background"
+    },
+    {
+      "id": "res_lorna_poe",
+      "name": "Lorna Poe",
+      "handle": "@LornaPoe",
+      "floor": "59",
+      "avatar": "\ud83e\uddeb",
+      "faction": "none",
+      "tags": "[background, booster, blackmarket]",
       "tier": "background"
     },
     {
@@ -423,6 +723,26 @@
       "tier": "background"
     },
     {
+      "id": "res_marty_bugg",
+      "name": "Marty Bugg",
+      "handle": "@MartyBugg",
+      "floor": "40",
+      "avatar": "\ud83e\uddf0",
+      "faction": "none",
+      "tags": "[background, performer, hopeful]",
+      "tier": "background"
+    },
+    {
+      "id": "res_marty_coyle",
+      "name": "Marty Coyle",
+      "handle": "@MartyCoyle",
+      "floor": "44",
+      "avatar": "\ud83e\udd6b",
+      "faction": "none",
+      "tags": "[background, loanshark, coyle]",
+      "tier": "background"
+    },
+    {
       "id": "res_marv_achebe",
       "name": "Marv Achebe",
       "handle": "@MarvAchebe",
@@ -433,6 +753,26 @@
       "tier": "background"
     },
     {
+      "id": "res_nadine_coyle",
+      "name": "Nadine Coyle",
+      "handle": "@NadineCoyle",
+      "floor": "27",
+      "avatar": "\ud83e\udd4d",
+      "faction": "none",
+      "tags": "[background, sportsparent, coyle]",
+      "tier": "background"
+    },
+    {
+      "id": "res_nadine_dobody",
+      "name": "Nadine Dobody",
+      "handle": "@NadineDobody",
+      "floor": "55",
+      "avatar": "\ud83e\udd4d",
+      "faction": "Kirwin Foods",
+      "tags": "[background, conspiracy, potluck]",
+      "tier": "background"
+    },
+    {
       "id": "res_nadine_vane",
       "name": "Nadine Vane",
       "handle": "@NadineVane",
@@ -440,6 +780,56 @@
       "avatar": "\ud83e\ude79",
       "faction": "none",
       "tags": "[background, Parent, Sports]",
+      "tier": "background"
+    },
+    {
+      "id": "res_norm_fassbind",
+      "name": "Norm Fassbind",
+      "handle": "@NormFassbind",
+      "floor": "19",
+      "avatar": "\ud83e\udd4d",
+      "faction": "Triboro Council",
+      "tags": "[background, council, sportsparent]",
+      "tier": "background"
+    },
+    {
+      "id": "res_norm_rhee",
+      "name": "Norm Rhee",
+      "handle": "@NormRhee",
+      "floor": "27",
+      "avatar": "\ud83e\udd4d",
+      "faction": "Kirwin Foods",
+      "tags": "[background, inventor, potluck]",
+      "tier": "background"
+    },
+    {
+      "id": "res_norm_sweetin",
+      "name": "Norm Sweetin",
+      "handle": "@NormSweetin",
+      "floor": "60",
+      "avatar": "\ud83e\udd74",
+      "faction": "none",
+      "tags": "[background, loanshark, spooked]",
+      "tier": "background"
+    },
+    {
+      "id": "res_otis_bwinter",
+      "name": "Otis Bwinter",
+      "handle": "@OtisBwinter",
+      "floor": "48",
+      "avatar": "\ud83c\udfb3",
+      "faction": "League of Trades",
+      "tags": "[background, league, wellness]",
+      "tier": "background"
+    },
+    {
+      "id": "res_otis_fassbind",
+      "name": "Otis Fassbind",
+      "handle": "@OtisFassbind",
+      "floor": "14",
+      "avatar": "\ud83d\udcfc",
+      "faction": "Kirwin Foods",
+      "tags": "[background, loanshark, inventor]",
       "tier": "background"
     },
     {
@@ -460,6 +850,16 @@
       "avatar": "\ud83e\udde2",
       "faction": "Kirwin Foods",
       "tags": "[background, Influencer, Hustler]",
+      "tier": "background"
+    },
+    {
+      "id": "res_otis_sweetin",
+      "name": "Otis Sweetin",
+      "handle": "@OtisSweetin",
+      "floor": "52",
+      "avatar": "\ud83e\udde2",
+      "faction": "League of Trades",
+      "tags": "[background, league, zealot]",
       "tier": "background"
     },
     {
@@ -513,6 +913,16 @@
       "tier": "background"
     },
     {
+      "id": "res_priya_coyle",
+      "name": "Priya Coyle",
+      "handle": "@PriyaCoyle",
+      "floor": "43",
+      "avatar": "\ud83d\udcfc",
+      "faction": "none",
+      "tags": "[background, booster, coyle]",
+      "tier": "background"
+    },
+    {
       "id": "res_priya_dunkel",
       "name": "Priya Dunkel",
       "handle": "@PriyaDunkel",
@@ -520,6 +930,16 @@
       "avatar": "\ud83d\udd6f\ufe0f",
       "faction": "none",
       "tags": "[background, Rumormonger, Unreliable]",
+      "tier": "background"
+    },
+    {
+      "id": "res_priya_fassbind",
+      "name": "Priya Fassbind",
+      "handle": "@PriyaFassbind",
+      "floor": "24",
+      "avatar": "\ud83d\uded7",
+      "faction": "none",
+      "tags": "[background, sportsparent, spooked]",
       "tier": "background"
     },
     {
@@ -533,6 +953,16 @@
       "tier": "background"
     },
     {
+      "id": "res_rhonda_hollan",
+      "name": "Rhonda Hollan",
+      "handle": "@RhondaHollan",
+      "floor": "52",
+      "avatar": "\ud83c\udfad",
+      "faction": "none",
+      "tags": "[background, elderly, oversharer]",
+      "tier": "background"
+    },
+    {
       "id": "res_rick_hollan",
       "name": "Rick Hollan",
       "handle": "@RickHollan",
@@ -543,6 +973,16 @@
       "tier": "background"
     },
     {
+      "id": "res_rick_salcido",
+      "name": "Rick Salcido",
+      "handle": "@RickSalcido",
+      "floor": "28",
+      "avatar": "\ud83e\ude9b",
+      "faction": "League of Trades",
+      "tags": "[background, blackmarket, league]",
+      "tier": "background"
+    },
+    {
       "id": "res_roz_denk",
       "name": "Roz Denk",
       "handle": "@RozDenk",
@@ -550,6 +990,26 @@
       "avatar": "\ud83e\uddeb",
       "faction": "none",
       "tags": "[background, Zealous, Partisan]",
+      "tier": "background"
+    },
+    {
+      "id": "res_roz_detweiler",
+      "name": "Roz Detweiler",
+      "handle": "@RozDetweiler",
+      "floor": "23",
+      "avatar": "\ud83c\udfad",
+      "faction": "none",
+      "tags": "[background, functionary, tired]",
+      "tier": "background"
+    },
+    {
+      "id": "res_sal_bracco",
+      "name": "Sal Bracco",
+      "handle": "@SalBracco",
+      "floor": "6",
+      "avatar": "\ud83c\udfad",
+      "faction": "none",
+      "tags": "[background, potluck, optimist]",
       "tier": "background"
     },
     {
@@ -573,6 +1033,36 @@
       "tier": "background"
     },
     {
+      "id": "res_shonda_ochoa",
+      "name": "Shonda Ochoa",
+      "handle": "@ShondaOchoa",
+      "floor": "9",
+      "avatar": "\ud83c\udfb3",
+      "faction": "none",
+      "tags": "[background, exfaction, bitter]",
+      "tier": "background"
+    },
+    {
+      "id": "res_shonda_trupp",
+      "name": "Shonda Trupp",
+      "handle": "@ShondaTrupp",
+      "floor": "34",
+      "avatar": "\ud83e\uddfc",
+      "faction": "none",
+      "tags": "[background, loanshark, wry]",
+      "tier": "background"
+    },
+    {
+      "id": "res_stan_gonsalves",
+      "name": "Stan Gonsalves",
+      "handle": "@StanGonsalves",
+      "floor": "36",
+      "avatar": "\ud83e\udde6",
+      "faction": "League of Trades",
+      "tags": "[background, league, washout]",
+      "tier": "background"
+    },
+    {
       "id": "res_stan_prewitt",
       "name": "Stan Prewitt",
       "handle": "@StanPrewitt",
@@ -580,6 +1070,36 @@
       "avatar": "\ud83e\uddf0",
       "faction": "none",
       "tags": "[background, Cynic, Ex-cop]",
+      "tier": "background"
+    },
+    {
+      "id": "res_tammy_hupp",
+      "name": "Tammy Hupp",
+      "handle": "@TammyHupp",
+      "floor": "29",
+      "avatar": "\ud83d\udd0c",
+      "faction": "none",
+      "tags": "[background, sportsparent, gambler]",
+      "tier": "background"
+    },
+    {
+      "id": "res_ted_coyle",
+      "name": "Ted Coyle",
+      "handle": "@TedCoyle",
+      "floor": "22",
+      "avatar": "\ud83d\udcfc",
+      "faction": "none",
+      "tags": "[background, booster, coyle]",
+      "tier": "background"
+    },
+    {
+      "id": "res_ted_detweiler",
+      "name": "Ted Detweiler",
+      "handle": "@TedDetweiler",
+      "floor": "51",
+      "avatar": "\ud83c\udccf",
+      "faction": "none",
+      "tags": "[background, blackmarket, booster]",
       "tier": "background"
     },
     {
@@ -593,6 +1113,16 @@
       "tier": "background"
     },
     {
+      "id": "res_ted_trupp",
+      "name": "Ted Trupp",
+      "handle": "@TedTrupp",
+      "floor": "38",
+      "avatar": "\ud83e\uddc5",
+      "faction": "Kirwin Foods",
+      "tags": "[background, hustle, kirwin]",
+      "tier": "background"
+    },
+    {
       "id": "res_ted_wetzel",
       "name": "Ted Wetzel",
       "handle": "@TedWetzel",
@@ -603,6 +1133,16 @@
       "tier": "background"
     },
     {
+      "id": "res_trish_coyle",
+      "name": "Trish Coyle",
+      "handle": "@TrishCoyle",
+      "floor": "37",
+      "avatar": "\ud83e\udd74",
+      "faction": "none",
+      "tags": "[background, hoa, coyle]",
+      "tier": "background"
+    },
+    {
       "id": "res_trish_ng",
       "name": "Trish Ng",
       "handle": "@TrishNg",
@@ -610,6 +1150,26 @@
       "avatar": "\ud83e\udeb4",
       "faction": "none",
       "tags": "[background, Booster, Annoying]",
+      "tier": "background"
+    },
+    {
+      "id": "res_trish_prusak",
+      "name": "Trish Prusak",
+      "handle": "@TrishPrusak",
+      "floor": "51",
+      "avatar": "\ud83e\uddc5",
+      "faction": "League of Trades",
+      "tags": "[background, functionary, exhausted]",
+      "tier": "background"
+    },
+    {
+      "id": "res_vince_fiore",
+      "name": "Vince Fiore",
+      "handle": "@VinceFiore",
+      "floor": "36",
+      "avatar": "\ud83d\udd6f\ufe0f",
+      "faction": "League of Trades",
+      "tags": "[background, league, washout]",
       "tier": "background"
     },
     {
@@ -643,6 +1203,26 @@
       "tier": "background"
     },
     {
+      "id": "res_wanda_okafor",
+      "name": "Wanda Okafor",
+      "handle": "@WandaOkafor",
+      "floor": "53",
+      "avatar": "\ud83c\udf5c",
+      "faction": "none",
+      "tags": "[background, loanshark, clout]",
+      "tier": "background"
+    },
+    {
+      "id": "res_warren_coyle",
+      "name": "Warren Coyle",
+      "handle": "@WarrenCoyle",
+      "floor": "10",
+      "avatar": "\ud83c\udccf",
+      "faction": "League of Trades",
+      "tags": "[background, rumor, coyle]",
+      "tier": "background"
+    },
+    {
       "id": "res_warren_detweiler",
       "name": "Warren Detweiler",
       "handle": "@WarrenDetweiler",
@@ -670,6 +1250,26 @@
       "avatar": "\ud83d\udd0c",
       "faction": "League of Trades",
       "tags": "[background, League, Grower]",
+      "tier": "background"
+    },
+    {
+      "id": "res_warren_sczepanski",
+      "name": "Warren Sczepanski",
+      "handle": "@WarrenSczepanski",
+      "floor": "39",
+      "avatar": "\ud83e\uddf5",
+      "faction": "Triboro Council",
+      "tags": "[background, council, feud]",
+      "tier": "background"
+    },
+    {
+      "id": "res_yolanda_feltz",
+      "name": "Yolanda Feltz",
+      "handle": "@YolandaFeltz",
+      "floor": "40",
+      "avatar": "\ud83e\udd4d",
+      "faction": "none",
+      "tags": "[background, washout, cynic]",
       "tier": "background"
     },
     {
