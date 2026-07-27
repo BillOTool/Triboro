@@ -1133,6 +1133,11 @@ class Handler(SimpleHTTPRequestHandler):
                 if post["id"] == pid:
                     if "text" in body:
                         post["text"] = body["text"]
+                    if "authored" in body:
+                        # Promote an edited draft to canon (or demote it). This is
+                        # what feeds build_lore_context(), so it's the knob that
+                        # teaches later generations the house voice.
+                        post["authored"] = bool(body["authored"])
                     if "pinned" in body:
                         post["pinned"] = bool(body["pinned"])
                     if "published" in body:

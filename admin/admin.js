@@ -290,6 +290,7 @@ function renderPosts() {
       <div class="post-text" data-id="${p.id}">${escapeHtml(p.text)}</div>
       <div class="post-actions">
         <button data-act="edit" data-id="${p.id}">edit</button>
+        <button data-act="canon" data-id="${p.id}" title="Canon posts are fed into every future generation as house voice">${p.authored ? "un-canon" : "✍︎ canon"}</button>
         <button data-act="pin" data-id="${p.id}">${p.pinned ? "unpin" : "pin"}</button>
         <button data-act="publish" data-id="${p.id}">${p.published ? "unpublish" : "publish"}</button>
         <button data-act="delete" data-id="${p.id}" class="danger">delete</button>
@@ -309,6 +310,8 @@ async function handlePostAction(ev) {
   if (act === "delete") {
     if (!confirm("delete this post?")) return;
     await api("/post/" + id, { method: "DELETE" });
+  } else if (act === "canon") {
+    await api("/post/" + id, { method: "PUT", body: { authored: !post.authored } });
   } else if (act === "pin") {
     await api("/post/" + id, { method: "PUT", body: { pinned: !post.pinned } });
   } else if (act === "publish") {
@@ -347,7 +350,9 @@ async function handlePostAction(ev) {
       const text = div.innerText.trim();
       cleanup();
       if (text && text !== post.text) {
-        await api("/post/" + id, { method: "PUT", body: { text } });
+        // Rewriting a post in your own words IS the canon signal — promote it
+        // so it feeds build_lore_context(). Use the un-canon button to undo.
+        await api("/post/" + id, { method: "PUT", body: { text, authored: true } });
         await loadPosts(); renderPosts();
       } else if (!text) {
         // empty text on save — restore original
