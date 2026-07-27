@@ -355,6 +355,27 @@ def build_site():
 
 # ─── Gemini ───────────────────────────────────────────────────────────────
 
+class RateLimited(RuntimeError):
+    """Gemini refused with a 429. On the free tier this is usually the daily
+    cap, so it won't clear by retrying harder — callers should degrade."""
+
+
+GEMINI_MAX_ATTEMPTS = 4
+GEMINI_BASE_DELAY = 2.0
+
+
+def _retry_after_seconds(err, attempt):
+    """Honour Retry-After when Gemini sends one, else exponential backoff with
+    jitter so parallel generators don't all wake up together."""
+    header = err.headers.get("Retry-After") if err.headers else None
+    if header:
+        try:
+            return min(float(header), 60.0)
+        except ValueError:
+            pass
+    return GEMINI_BASE_DELAY * (2 ** attempt) + random.uniform(0, 1)
+
+
 def gemini_generate(system_prompt, user_prompt, max_tokens=1500, temperature=1.0):
     if not API_KEY:
         raise RuntimeError("No API key")
@@ -367,11 +388,36 @@ def gemini_generate(system_prompt, user_prompt, max_tokens=1500, temperature=1.0
         }
     }).encode()
     url = f"{GEMINI_URL}?key={API_KEY}"
-    req = Request(url, data=payload, method="POST")
-    req.add_header("Content-Type", "application/json")
-    with urlopen(req) as resp:
-        result = json.loads(resp.read())
-    return result["candidates"][0]["content"]["parts"][0]["text"]
+
+    for attempt in range(GEMINI_MAX_ATTEMPTS):
+        req = Request(url, data=payload, method="POST")
+        req.add_header("Content-Type", "application/json")
+        try:
+            with urlopen(req, timeout=120) as resp:
+                result = json.loads(resp.read())
+            return result["candidates"][0]["content"]["parts"][0]["text"]
+        except HTTPError as e:
+            # 429 = rate limited, 5xx = transient on Google's side. Anything
+            # else (bad key, malformed request) won't improve with a retry.
+            if e.code != 429 and e.code < 500:
+                raise
+            last = e
+        except URLError as e:
+            last = e
+
+        if attempt == GEMINI_MAX_ATTEMPTS - 1:
+            break
+        delay = _retry_after_seconds(last, attempt) if isinstance(last, HTTPError) \
+            else GEMINI_BASE_DELAY * (2 ** attempt)
+        print(f"  gemini retry {attempt + 1}/{GEMINI_MAX_ATTEMPTS - 1} in {delay:.1f}s ({last})")
+        time.sleep(delay)
+
+    if isinstance(last, HTTPError) and last.code == 429:
+        raise RateLimited(
+            "Gemini rate limit reached. On the free tier this is usually the "
+            "daily quota — try again tomorrow, or author posts by hand."
+        )
+    raise RuntimeError(f"Gemini unreachable after {GEMINI_MAX_ATTEMPTS} attempts: {last}")
 
 
 def build_world_context():
@@ -1264,14 +1310,25 @@ class Handler(SimpleHTTPRequestHandler):
         req = Request(url, data=payload, method="POST")
         req.add_header("Content-Type", "application/json")
         try:
-            with urlopen(req) as resp:
+            with urlopen(req, timeout=60) as resp:
                 result = json.loads(resp.read())
             reply = result["candidates"][0]["content"]["parts"][0]["text"].strip()
         except HTTPError as e:
-            err = e.read().decode() if hasattr(e, "read") else str(e)
-            return self.send_json({"error": err}, 502)
+            if e.code == 429:
+                # Don't leak Google's error JSON at a visitor. Stay in-world.
+                return self.send_json(
+                    {"error": f"{char_name} isn't answering right now. "
+                              f"The switchboard is overloaded. Try later.",
+                     "rate_remaining": remaining}, 503)
+            print(f"  chat error {e.code}: {e.read().decode()[:200] if hasattr(e, 'read') else e}")
+            return self.send_json(
+                {"error": f"Couldn't reach {char_name}. The line went dead.",
+                 "rate_remaining": remaining}, 502)
         except (URLError, KeyError, IndexError) as e:
-            return self.send_json({"error": str(e)}, 502)
+            print(f"  chat error: {e}")
+            return self.send_json(
+                {"error": f"Couldn't reach {char_name}. The line went dead.",
+                 "rate_remaining": remaining}, 502)
 
         now = int(time.time())
         append_chat_messages(r["id"], cid, [

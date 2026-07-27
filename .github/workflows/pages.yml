@@ -1,0 +1,78 @@
+# Publishes the public feed to GitHub Pages.
+#
+# Deliberately deploys a SUBSET of the repo, not the whole thing. The repo is
+# also the authoring database: data/posts.json holds unpublished drafts and
+# data/stories/ holds the source prose, neither of which should be fetchable
+# from the public site. Only the files the feed actually reads get copied
+# into _site.
+#
+# data/site.json is the compiled public bundle (see build_site() in server.py)
+# and is the only data file the frontend loads. Character DMs go to the
+# Cloudflare Worker, not to anything served here.
+name: Deploy public feed to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it midway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble public site
+        run: |
+          set -euo pipefail
+          mkdir -p _site/data
+          cp index.html feed.js feed.css _site/
+          cp data/site.json _site/data/
+          # Skip Jekyll: it would ignore any path starting with _ or .
+          touch _site/.nojekyll
+
+      - name: Verify no private data slipped in
+        run: |
+          set -euo pipefail
+          for forbidden in _site/data/posts.json _site/data/events.json \
+                           _site/data/residents.json _site/data/chats.json \
+                           _site/data/stories _site/data/characters _site/data/lore; do
+            if [ -e "$forbidden" ]; then
+              echo "::error::$forbidden must not be published"; exit 1
+            fi
+          done
+          # site.json is generated; a stale or missing one ships an empty feed.
+          python3 - <<'PY'
+          import json, sys
+          site = json.load(open("_site/data/site.json"))
+          posts, chars = site.get("posts", []), site.get("characters", [])
+          print(f"publishing {len(posts)} posts, {len(chars)} characters")
+          if not posts or not chars:
+              sys.exit("site.json looks empty — run build_site() and commit it")
+          if any(p.get("status") != "published" for p in posts):
+              sys.exit("site.json contains non-published posts")
+          PY
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

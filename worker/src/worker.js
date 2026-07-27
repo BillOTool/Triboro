@@ -181,6 +181,12 @@ async function appendHistory(env, residentId, characterId, messages) {
 
 // ─── Gemini ──────────────────────────────────────────────────────────────
 
+// Thrown when Gemini rate-limits us. On the free tier this is usually the
+// daily quota, so retrying won't help — the caller degrades in-world instead.
+class GeminiRateLimited extends Error {}
+
+const GEMINI_RETRIES = 2;
+
 async function geminiChat(env, system, contents) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`;
   const payload = {
@@ -188,19 +194,34 @@ async function geminiChat(env, system, contents) {
     systemInstruction: { parts: [{ text: system }] },
     generationConfig: { maxOutputTokens: 400, temperature: 0.95 },
   };
-  const r = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!r.ok) {
+
+  let last;
+  for (let attempt = 0; attempt <= GEMINI_RETRIES; attempt++) {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (r.ok) {
+      const data = await r.json();
+      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!reply) throw new Error("gemini returned no text");
+      return reply.trim();
+    }
+
     const body = await r.text();
-    throw new Error(`gemini ${r.status}: ${body.slice(0, 500)}`);
+    // 429 on the free tier is the daily cap — don't burn wall-clock retrying.
+    if (r.status === 429) throw new GeminiRateLimited(body.slice(0, 200));
+    // 4xx other than 429 (bad key, malformed request) won't improve either.
+    if (r.status < 500) throw new Error(`gemini ${r.status}: ${body.slice(0, 200)}`);
+
+    last = new Error(`gemini ${r.status}: ${body.slice(0, 200)}`);
+    if (attempt < GEMINI_RETRIES) {
+      await new Promise((res) => setTimeout(res, 500 * 2 ** attempt));
+    }
   }
-  const data = await r.json();
-  const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!reply) throw new Error("gemini returned no text");
-  return reply.trim();
+  throw last;
 }
 
 function characterSystemPrompt(character, residentDisplayName) {
@@ -327,11 +348,24 @@ async function handleChat(request, env) {
   }));
   contents.push({ role: "user", parts: [{ text }] });
 
+  const charName = character.meta.name || characterId;
   let reply;
   try {
     reply = await geminiChat(env, system, contents);
   } catch (e) {
-    return json({ error: String(e.message || e) }, { status: 502 }, request, env);
+    // Never surface Google's error payload to a visitor — stay in-world.
+    console.error("chat failed:", String(e.message || e));
+    if (e instanceof GeminiRateLimited) {
+      return json(
+        { error: `${charName} isn't answering right now. The switchboard is overloaded. Try later.`,
+          rate_remaining: limitCheck.remaining },
+        { status: 503 }, request, env,
+      );
+    }
+    return json(
+      { error: `Couldn't reach ${charName}. The line went dead.`, rate_remaining: limitCheck.remaining },
+      { status: 502 }, request, env,
+    );
   }
 
   const now = nowSec();
