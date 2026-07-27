@@ -29,8 +29,9 @@ characters, 11 events. Two commits are local and unpushed (`b193151`,
 - [ ] Personal API key at console.anthropic.com as **botoole12@gmail.com**
       (check the org switcher — not New Consensus) → `.anthropic-key`
 - [ ] `python3 check_claude.py` — 3 live calls, prints cost, writes nothing
-- [ ] `cd worker && npx wrangler secret put ANTHROPIC_API_KEY && npm run deploy`
-      — this deploy also ships the 5→134 character fix
+- [ ] `cd worker && npm run deploy` — DMs now run on Workers AI (free, no key)
+      — this deploy also ships the 5→134 character fix. Only needed for the
+      paid path: `npx wrangler secret put ANTHROPIC_API_KEY` + CHAT_PROVIDER=claude
 - [ ] Test a DM to a background resident on the live site (the one thing not
       yet verified end to end)
 - [ ] Set a spend alert in the console

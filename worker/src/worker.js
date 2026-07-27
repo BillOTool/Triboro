@@ -8,7 +8,9 @@
 //
 // World + characters are bundled at build time (see build-data.mjs).
 // Residents, chat history, and rate-limit counters live in KV.
-// ANTHROPIC_API_KEY is a Worker secret — never returned to clients. It must be
+// DMs run on Workers AI (free, on-platform) by default — see CHAT_PROVIDER in
+// wrangler.toml. ANTHROPIC_API_KEY is only needed for the "claude" provider;
+// it is a Worker secret, never returned to clients, and it must be
 // the PERSONAL Anthropic key (botoole12@gmail.com), not a New Consensus one.
 
 import { WORLD, CHARACTERS } from "./data.js";
@@ -180,11 +182,66 @@ async function appendHistory(env, residentId, characterId, messages) {
   return trimmed;
 }
 
-// ─── Claude ──────────────────────────────────────────────────────────────
+// ─── chat providers ──────────────────────────────────────────────────────
 
-// Thrown when Claude rate-limits us; the caller degrades in-world instead of
-// surfacing the provider's error payload to a visitor.
+// Thrown when the provider rate-limits us; the caller degrades in-world instead
+// of surfacing the provider's error payload to a visitor.
 class ClaudeRateLimited extends Error {}
+
+// Which backend answers DMs. Workers AI is free and runs on-platform; Claude is
+// paid and noticeably better. Both take (system, messages) and return a string,
+// so the handler doesn't care which is in play.
+async function chatComplete(env, system, messages, speaker) {
+  if ((env.CHAT_PROVIDER || "workers-ai") === "claude") {
+    return claudeChat(env, system, messages);
+  }
+  return workersAIChat(env, system, messages, speaker);
+}
+
+async function workersAIChat(env, system, messages, speaker) {
+  if (!env.AI) throw new Error("AI binding missing — add [ai] to wrangler.toml");
+  // Workers AI takes the system prompt as the first message rather than a
+  // separate field, unlike the Anthropic API.
+  const resp = await env.AI.run(env.WORKERS_AI_MODEL || "@cf/meta/llama-3.1-8b-instruct", {
+    messages: [{ role: "system", content: system }, ...messages],
+    max_tokens: 400,
+    temperature: 0.9,
+  });
+  const reply = (resp?.response ?? "").trim();
+  if (!reply) throw new Error("workers-ai returned no text");
+  return stripChatter(reply, speaker);
+}
+
+// Small open models like to wrap replies in quotes, prefix them with the
+// speaker's name, or append a stage direction. Strip the common tells so a DM
+// reads as the character talking, not a model performing one.
+//
+// Only the SPEAKER'S OWN name is stripped, never a generic capitalised phrase —
+// an earlier version ate the first clause of "I told them: the seal was
+// cracked." Losing real dialogue is far worse than leaving a stray prefix.
+function escapeRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function stripChatter(text, speaker) {
+  let t = text.trim();
+
+  if (speaker) {
+    // Matches "Gus:", "**Gus Pelletier:**", "*Gus*:" and similar.
+    const name = escapeRe(speaker);
+    const first = escapeRe(speaker.split(/\s+/)[0]);
+    const prefix = new RegExp(`^\\s*[*_]{0,2}(?:${name}|${first})[*_]{0,2}\\s*[:：]\\s*[*_]{0,2}\\s*`, "i");
+    t = t.replace(prefix, "");
+  }
+
+  // Whole reply wrapped in matching quotes.
+  if (t.length > 1 && /^["“']/.test(t) && /["”']$/.test(t)) t = t.slice(1, -1).trim();
+
+  // Trailing stage direction, e.g. "(as Gus Pelletier)" or "(in character)".
+  t = t.replace(/\s*\((?:as |in character|note[: ])[^)]*\)\s*$/i, "");
+
+  return t.trim();
+}
 
 const CLAUDE_RETRIES = 2;
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -318,7 +375,10 @@ async function handleChatHistory(request, env, characterId) {
 }
 
 async function handleChat(request, env) {
-  if (!env.ANTHROPIC_API_KEY) {
+  const provider = env.CHAT_PROVIDER || "workers-ai";
+  // Workers AI needs no key — only the Claude path does.
+  const configured = provider === "claude" ? !!env.ANTHROPIC_API_KEY : !!env.AI;
+  if (!configured) {
     return json({ error: "Server not configured" }, { status: 500 }, request, env);
   }
 
@@ -374,7 +434,7 @@ async function handleChat(request, env) {
   const charName = character.meta.name || characterId;
   let reply;
   try {
-    reply = await claudeChat(env, system, messages);
+    reply = await chatComplete(env, system, messages, charName);
   } catch (e) {
     // Never surface the provider's error payload to a visitor — stay in-world.
     console.error("chat failed:", String(e.message || e));

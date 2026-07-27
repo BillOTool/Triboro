@@ -8,10 +8,24 @@ compatibility_date = "2026-04-01"
 binding = "TRIBORO"
 id = "88af387c926d469a94d698943ac796d1"
 
+# Workers AI — on-platform inference with a free daily allocation. No API key,
+# no external fetch, runs at the edge alongside this Worker.
+[ai]
+binding = "AI"
+
 # Public configuration — safe to commit. Secrets (ANTHROPIC_API_KEY) are set with
 # `wrangler secret put ANTHROPIC_API_KEY` and never appear in this file. Use the
 # PERSONAL Anthropic key (botoole12@gmail.com), never a New Consensus key.
 [vars]
+# Which backend answers DMs: "workers-ai" (free) or "claude" (paid, better).
+# Switching to "claude" additionally needs the ANTHROPIC_API_KEY secret set.
+CHAT_PROVIDER = "workers-ai"
+
+# Workers AI model. Check the catalogue for current free-tier options:
+#   npx wrangler ai models
+WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct"
+
+# Used only when CHAT_PROVIDER = "claude".
 CLAUDE_MODEL = "claude-haiku-4-5"
 
 # Per-IP request budget on /api/chat. Sliding 1-hour window, KV-backed.
