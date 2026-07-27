@@ -1,6 +1,15 @@
+# Credentials
 .api-key
+.anthropic-key
+
+# Local runtime state
 .DS_Store
 __pycache__/
 data/residents.json
 data/chats.json
-.anthropic-key
+
+# Source writing. The GitHub repo is public, so committing these would publish
+# the raw prose even though the Pages workflow keeps it off the site. Kept
+# local on purpose — back it up outside git (not iCloud; it corrupted this
+# repo once). data/stories.json keeps the titles/index and stays tracked.
+data/stories/

@@ -11,15 +11,12 @@ characters, 11 events. Two commits are local and unpushed (`b193151`,
 
 ## Decide first
 
-- [ ] **`data/stories/` in a public repo.** The GitHub repo is public and
-      `data/stories/` is not gitignored. The Pages workflow keeps source prose
-      off the *site*, but committing it publishes it on github.com. The folder
-      is empty today, so nothing has leaked — but the writing workflow starts
-      by putting prose there. Pick one:
-      (a) gitignore it — prose stays local, no version history, lost if the
-          disk dies;
-      (b) accept it's public — it's a comedy project, maybe fine;
-      (c) make the repo private — Pages on a private repo needs a paid plan.
+- [x] ~~`data/stories/` in a public repo~~ — gitignored 2026-07-26. Source
+      prose stays local. Nothing had been committed, so no history to scrub.
+      `data/stories.json` (titles/index) is still tracked.
+- [ ] **Back up `data/stories/` somewhere.** It's now outside git, so it has no
+      version history and dies with the disk. Not iCloud — that corrupted this
+      repo once. External disk or a local Time Machine target.
 - [ ] Rewrite the flooding headline in your own voice. Currently *"Water
       reaches six floors; Council issues 'Notice of Dampness'"* — my
       placeholder, not yours. It's the top headline on the live site.
