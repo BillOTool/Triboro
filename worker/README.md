@@ -19,7 +19,7 @@ npm install
 npx wrangler login                                   # browser auth to Cloudflare
 npx wrangler kv namespace create TRIBORO             # prints { id = "..." }
 # paste the printed id into wrangler.toml under [[kv_namespaces]]
-npx wrangler secret put GEMINI_API_KEY               # paste the key when prompted
+npx wrangler secret put ANTHROPIC_API_KEY            # PERSONAL key (botoole12@gmail.com)
 npm run deploy                                       # bundles data, deploys
 ```
 
@@ -62,4 +62,4 @@ build-time bound). For runtime tunables we'd move them to KV later.
 
 - Wipe the KV namespace: `npx wrangler kv namespace delete --binding TRIBORO`
   then recreate. Drops all residents and chat history.
-- Rotate the Gemini key: `npx wrangler secret put GEMINI_API_KEY` again.
+- Rotate the Claude key: `npx wrangler secret put ANTHROPIC_API_KEY` again.

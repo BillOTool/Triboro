@@ -32,20 +32,42 @@ STORY_DOCS_DIR = os.path.join(DATA, "stories")  # one <story_id>.md per story's 
 QUEUE_STATE_FILE = os.path.join(DATA, "queue_state.json")
 
 DAILY_MESSAGE_LIMIT = 50
-HISTORY_TURNS_TO_SEND = 16  # how many recent messages to include in each Gemini call
+HISTORY_TURNS_TO_SEND = 16  # how many recent messages to include in each Claude call
 
 # Queue cadence — drip a queued post into the public feed at this interval
 # (when someone's polling). Each interval is randomized within ± JITTER.
 QUEUE_CADENCE_SECONDS = 90
 QUEUE_JITTER_SECONDS = 30
 
-API_KEY = os.environ.get("GEMINI_API_KEY", "")
-_key_file = os.path.join(ROOT, ".api-key")
-if not API_KEY and os.path.exists(_key_file):
-    with open(_key_file) as f:
-        API_KEY = f.read().strip()
-GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+# ─── Claude credentials ───────────────────────────────────────────────────
+# Triboro is a PERSONAL project and must bill the personal Anthropic account
+# (botoole12@gmail.com), never the New Consensus work account.
+#
+# We therefore read the key from a local gitignored file and deliberately do
+# NOT fall back to ANTHROPIC_API_KEY. The SDK would happily pick that up, so
+# if a work key were ever exported into the shell this tool would silently
+# spend on the wrong account. The override env var is named distinctly so it
+# can't collide with the work credential.
+KEY_FILE = os.path.join(ROOT, ".anthropic-key")
+
+
+def load_api_key():
+    key = os.environ.get("TRIBORO_ANTHROPIC_KEY", "").strip()
+    if key:
+        return key
+    if os.path.exists(KEY_FILE):
+        with open(KEY_FILE) as f:
+            return f.read().strip()
+    return ""
+
+
+API_KEY = load_api_key()
+
+# Authoring is the voice-critical work and runs a handful of calls per
+# session, so it gets the strong model. The DM chat in worker/ uses Haiku —
+# high volume, hard-capped, and short in-character replies.
+CLAUDE_MODEL = "claude-opus-5"
+CHAT_MODEL = "claude-haiku-4-5"
 
 
 # ─── data helpers ─────────────────────────────────────────────────────────
@@ -353,71 +375,39 @@ def build_site():
     return site
 
 
-# ─── Gemini ───────────────────────────────────────────────────────────────
+# ─── Claude ───────────────────────────────────────────────────────────────
 
 class RateLimited(RuntimeError):
-    """Gemini refused with a 429. On the free tier this is usually the daily
-    cap, so it won't clear by retrying harder — callers should degrade."""
+    """Claude returned a 429. Callers degrade rather than erroring out."""
 
 
-GEMINI_MAX_ATTEMPTS = 4
-GEMINI_BASE_DELAY = 2.0
-
-
-def _retry_after_seconds(err, attempt):
-    """Honour Retry-After when Gemini sends one, else exponential backoff with
-    jitter so parallel generators don't all wake up together."""
-    header = err.headers.get("Retry-After") if err.headers else None
-    if header:
-        try:
-            return min(float(header), 60.0)
-        except ValueError:
-            pass
-    return GEMINI_BASE_DELAY * (2 ** attempt) + random.uniform(0, 1)
-
-
-def gemini_generate(system_prompt, user_prompt, max_tokens=1500, temperature=1.0):
+def _client():
+    """Build an SDK client bound to the personal key. Constructed per call so a
+    key added via /api/set-key takes effect without a restart."""
     if not API_KEY:
-        raise RuntimeError("No API key")
-    payload = json.dumps({
-        "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-        "systemInstruction": {"parts": [{"text": system_prompt}]},
-        "generationConfig": {
-            "maxOutputTokens": max_tokens,
-            "temperature": temperature,
-        }
-    }).encode()
-    url = f"{GEMINI_URL}?key={API_KEY}"
-
-    for attempt in range(GEMINI_MAX_ATTEMPTS):
-        req = Request(url, data=payload, method="POST")
-        req.add_header("Content-Type", "application/json")
-        try:
-            with urlopen(req, timeout=120) as resp:
-                result = json.loads(resp.read())
-            return result["candidates"][0]["content"]["parts"][0]["text"]
-        except HTTPError as e:
-            # 429 = rate limited, 5xx = transient on Google's side. Anything
-            # else (bad key, malformed request) won't improve with a retry.
-            if e.code != 429 and e.code < 500:
-                raise
-            last = e
-        except URLError as e:
-            last = e
-
-        if attempt == GEMINI_MAX_ATTEMPTS - 1:
-            break
-        delay = _retry_after_seconds(last, attempt) if isinstance(last, HTTPError) \
-            else GEMINI_BASE_DELAY * (2 ** attempt)
-        print(f"  gemini retry {attempt + 1}/{GEMINI_MAX_ATTEMPTS - 1} in {delay:.1f}s ({last})")
-        time.sleep(delay)
-
-    if isinstance(last, HTTPError) and last.code == 429:
-        raise RateLimited(
-            "Gemini rate limit reached. On the free tier this is usually the "
-            "daily quota — try again tomorrow, or author posts by hand."
+        raise RuntimeError(
+            "No Anthropic key. Put a personal key (console.anthropic.com, "
+            "botoole12@gmail.com) in .anthropic-key, or set TRIBORO_ANTHROPIC_KEY."
         )
-    raise RuntimeError(f"Gemini unreachable after {GEMINI_MAX_ATTEMPTS} attempts: {last}")
+    import anthropic
+    # api_key is passed explicitly so the SDK never resolves ANTHROPIC_API_KEY
+    # or an `ant` profile — this project must not touch the work account.
+    return anthropic.Anthropic(api_key=API_KEY, max_retries=4)
+
+
+def claude_text(system_prompt, user_prompt, max_tokens=1500):
+    """Plain text completion. The SDK retries 429/5xx with backoff itself."""
+    import anthropic
+    try:
+        msg = _client().messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=max_tokens,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+    except anthropic.RateLimitError as e:
+        raise RateLimited(f"Claude rate limit reached: {e}") from e
+    return "".join(b.text for b in msg.content if b.type == "text")
 
 
 def build_world_context():
@@ -427,32 +417,91 @@ def build_world_context():
     return ""
 
 
-def _strip_fences(s):
-    s = s.strip()
-    if s.startswith("```"):
-        s = re.sub(r"^```(?:json)?\n?", "", s)
-        s = re.sub(r"\n?```$", "", s)
-    return s
+# JSON Schemas for structured outputs. The API constrains generation to these,
+# so the reply is always parseable — no code fences, no trailing commas, and
+# none of the reparse-and-beg retry logic the old path needed.
+
+POSTS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "posts": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "character_id": {"type": "string"},
+                    "text": {"type": "string"},
+                },
+                "required": ["character_id", "text"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["posts"],
+    "additionalProperties": False,
+}
+
+STORY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "events": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                },
+                "required": ["title", "description"],
+                "additionalProperties": False,
+            },
+        },
+        "posts": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "character_id": {"type": "string"},
+                    "event_index": {"type": "integer"},
+                    "text": {"type": "string"},
+                },
+                "required": ["character_id", "event_index", "text"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["events", "posts"],
+    "additionalProperties": False,
+}
 
 
-def gemini_json(system, user, max_tokens=4000, temperature=1.0):
-    """Call Gemini and parse the reply as JSON, with one stricter retry.
-    Most first-try failures are an unescaped quote or a stray trailing comma."""
-    raw = _strip_fences(gemini_generate(system, user, max_tokens, temperature))
+def claude_json(system, user, schema, max_tokens=8000):
+    """Call Claude with a response schema and return the parsed object.
+
+    max_tokens covers thinking *and* output on Opus 5 (thinking is on by
+    default), so keep it generous or long runs truncate mid-array.
+    """
+    import anthropic
     try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        retry_user = user + (
-            "\n\nIMPORTANT: Your previous response could not be parsed as JSON. "
-            "Return ONLY valid JSON. No code fences. Do not include trailing "
-            'commas. Escape every internal double-quote with \\".'
+        msg = _client().messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+            output_config={"format": {"type": "json_schema", "schema": schema}},
         )
-        raw2 = _strip_fences(gemini_generate(system, retry_user, max_tokens, temperature))
-        try:
-            return json.loads(raw2)
-        except json.JSONDecodeError as e2:
-            preview = raw2[:400].replace("\n", " ")
-            raise RuntimeError(f"Gemini returned non-JSON twice: {e2}. Raw preview: {preview!r}")
+    except anthropic.RateLimitError as e:
+        raise RateLimited(f"Claude rate limit reached: {e}") from e
+
+    if msg.stop_reason == "refusal":
+        raise RuntimeError("Claude declined this generation request.")
+    if msg.stop_reason == "max_tokens":
+        raise RuntimeError(
+            f"Generation hit the {max_tokens}-token cap and truncated. "
+            "Generate fewer posts per call, or raise max_tokens."
+        )
+    text = next((b.text for b in msg.content if b.type == "text"), "")
+    return json.loads(text)
 
 
 def character_context(character_ids):
@@ -543,7 +592,7 @@ def voice_block():
 
 
 def generate_reactions(event, character_ids, n_per_character=1):
-    """For a given event and selected characters, ask Gemini for in-character posts."""
+    """For a given event and selected characters, ask Claude for in-character posts."""
     world = build_world_context()
     _, char_blocks = character_context(character_ids)
 
@@ -567,13 +616,12 @@ def generate_reactions(event, character_ids, n_per_character=1):
         "Where it genuinely fits a character's voice, have them engage with THE FEED SO FAR — "
         "reply to, agree with, needle, worry about, or nurse a grudge over something another "
         "resident recently posted. Don't force it on every post; let it happen where it's natural.\n\n"
-        "Return ONLY a JSON array, no markdown, no code fences. Each item: "
-        '{"character_id": "<id>", "text": "<the post>"}. '
+        'Return an object: {"posts": [{"character_id": "<id>", "text": "<the post>"}]}. '
         f"Use these character ids: {', '.join(character_ids)}."
     )
-    # Headroom: 10 posts × ~250 tokens each + JSON wrapper. 4000 keeps slack
-    # so the response doesn't truncate mid-string.
-    posts = gemini_json(system, user, max_tokens=4000)
+    # The schema guarantees shape; max_tokens just needs headroom for thinking
+    # plus ~10 posts of prose.
+    posts = claude_json(system, user, POSTS_SCHEMA)["posts"]
 
     now = int(time.time())
     event_offset = int(event.get("triboro_offset") or 0)
@@ -632,7 +680,7 @@ def generate_crowd_reactions(event, target_count=120, pool_ids=None,
                              max_calls=None, progress=None):
     """HUGE EVENT: fan a tentpole announcement out across the whole population.
     Draws from `pool_ids` (default: every character — principals + background),
-    shuffles, and generates in chunks across many Gemini calls until it has
+    shuffles, and generates in chunks across many Claude calls until it has
     ~target_count deduped posts, cycling the pool for extra rounds if the target
     exceeds the roster. `progress(done, target)` is called after each chunk."""
     pool = list(pool_ids) if pool_ids is not None else [c["id"] for c in list_characters()]
@@ -692,14 +740,14 @@ def generate_from_story(story, doc_text, character_ids, n_events=3, n_per_charac
         f"Then write {n_per_character} short post(s) per character reacting to these events, each fully "
         "in that character's voice and obsessions. Tie each post to one event by its index. Some "
         "characters might react only obliquely, or to the mood rather than the facts.\n\n"
-        "Return ONLY JSON, no markdown, no code fences, in exactly this shape:\n"
+        "Return JSON in exactly this shape:\n"
         '{"events": [{"title": "...", "description": "..."}], '
         '"posts": [{"character_id": "<id>", "event_index": 0, "text": "..."}]}\n'
         f"Use only these character ids: {', '.join(character_ids)}. "
         "event_index is the 0-based position of the event in the events array."
     )
 
-    data = gemini_json(system, user, max_tokens=4000)
+    data = claude_json(system, user, STORY_SCHEMA)
     raw_events = (data.get("events") or [])[:n_events]
     raw_posts = data.get("posts") or []
 
@@ -1299,37 +1347,31 @@ class Handler(SimpleHTTPRequestHandler):
 
         history = get_chat_history(r["id"], cid)
         recent = history[-HISTORY_TURNS_TO_SEND:]
-        contents = [
-            {"role": "user" if m["role"] == "user" else "model",
-             "parts": [{"text": m["text"]}]}
+        messages = [
+            {"role": "user" if m["role"] == "user" else "assistant", "content": m["text"]}
             for m in recent
         ]
-        contents.append({"role": "user", "parts": [{"text": text}]})
+        messages.append({"role": "user", "content": text})
 
-        payload = json.dumps({
-            "contents": contents,
-            "systemInstruction": {"parts": [{"text": system}]},
-            "generationConfig": {"maxOutputTokens": 400, "temperature": 0.95},
-        }).encode()
-        url = f"{GEMINI_URL}?key={API_KEY}"
-        req = Request(url, data=payload, method="POST")
-        req.add_header("Content-Type", "application/json")
+        import anthropic
         try:
-            with urlopen(req, timeout=60) as resp:
-                result = json.loads(resp.read())
-            reply = result["candidates"][0]["content"]["parts"][0]["text"].strip()
-        except HTTPError as e:
-            if e.code == 429:
-                # Don't leak Google's error JSON at a visitor. Stay in-world.
-                return self.send_json(
-                    {"error": f"{char_name} isn't answering right now. "
-                              f"The switchboard is overloaded. Try later.",
-                     "rate_remaining": remaining}, 503)
-            print(f"  chat error {e.code}: {e.read().decode()[:200] if hasattr(e, 'read') else e}")
+            # Haiku for chat: short in-character replies, high volume, cheap.
+            resp = _client().messages.create(
+                model=CHAT_MODEL,
+                max_tokens=400,
+                system=system,
+                messages=messages,
+            )
+            reply = "".join(b.text for b in resp.content if b.type == "text").strip()
+            if not reply:
+                raise RuntimeError(f"empty reply (stop_reason={resp.stop_reason})")
+        except anthropic.RateLimitError:
+            # Don't leak the provider's error payload at a visitor. Stay in-world.
             return self.send_json(
-                {"error": f"Couldn't reach {char_name}. The line went dead.",
-                 "rate_remaining": remaining}, 502)
-        except (URLError, KeyError, IndexError) as e:
+                {"error": f"{char_name} isn't answering right now. "
+                          f"The switchboard is overloaded. Try later.",
+                 "rate_remaining": remaining}, 503)
+        except Exception as e:
             print(f"  chat error: {e}")
             return self.send_json(
                 {"error": f"Couldn't reach {char_name}. The line went dead.",
@@ -1349,10 +1391,10 @@ class Handler(SimpleHTTPRequestHandler):
         if not API_KEY:
             return self.send_json({"ok": False, "error": "No key provided"}, 400)
         try:
-            with urlopen(Request(f"https://generativelanguage.googleapis.com/v1beta/models?key={API_KEY}")) as r:
-                r.read()
+            import anthropic
+            anthropic.Anthropic(api_key=API_KEY).models.retrieve(CHAT_MODEL)
             self.send_json({"ok": True})
-        except (URLError, HTTPError) as e:
+        except Exception as e:
             API_KEY = ""
             self.send_json({"ok": False, "error": str(e)}, 400)
 

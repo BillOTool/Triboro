@@ -8,7 +8,8 @@
 //
 // World + characters are bundled at build time (see build-data.mjs).
 // Residents, chat history, and rate-limit counters live in KV.
-// GEMINI_API_KEY is a Worker secret — never returned to clients.
+// ANTHROPIC_API_KEY is a Worker secret — never returned to clients. It must be
+// the PERSONAL Anthropic key (botoole12@gmail.com), not a New Consensus one.
 
 import { WORLD, CHARACTERS } from "./data.js";
 
@@ -179,45 +180,67 @@ async function appendHistory(env, residentId, characterId, messages) {
   return trimmed;
 }
 
-// ─── Gemini ──────────────────────────────────────────────────────────────
+// ─── Claude ──────────────────────────────────────────────────────────────
 
-// Thrown when Gemini rate-limits us. On the free tier this is usually the
-// daily quota, so retrying won't help — the caller degrades in-world instead.
-class GeminiRateLimited extends Error {}
+// Thrown when Claude rate-limits us; the caller degrades in-world instead of
+// surfacing the provider's error payload to a visitor.
+class ClaudeRateLimited extends Error {}
 
-const GEMINI_RETRIES = 2;
+const CLAUDE_RETRIES = 2;
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 
-async function geminiChat(env, system, contents) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`;
+async function claudeChat(env, system, messages) {
   const payload = {
-    contents,
-    systemInstruction: { parts: [{ text: system }] },
-    generationConfig: { maxOutputTokens: 400, temperature: 0.95 },
+    model: env.CLAUDE_MODEL,
+    max_tokens: 400,
+    system,
+    messages,
   };
 
   let last;
-  for (let attempt = 0; attempt <= GEMINI_RETRIES; attempt++) {
-    const r = await fetch(url, {
+  for (let attempt = 0; attempt <= CLAUDE_RETRIES; attempt++) {
+    const r = await fetch(ANTHROPIC_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
       body: JSON.stringify(payload),
     });
 
     if (r.ok) {
       const data = await r.json();
-      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!reply) throw new Error("gemini returned no text");
-      return reply.trim();
+      // Safety classifiers can decline with a 200 — check before reading text.
+      if (data.stop_reason === "refusal") {
+        throw new Error("claude declined this message");
+      }
+      const reply = (data.content || [])
+        .filter((b) => b.type === "text")
+        .map((b) => b.text)
+        .join("")
+        .trim();
+      if (!reply) throw new Error("claude returned no text");
+      return reply;
     }
 
     const body = await r.text();
-    // 429 on the free tier is the daily cap — don't burn wall-clock retrying.
-    if (r.status === 429) throw new GeminiRateLimited(body.slice(0, 200));
-    // 4xx other than 429 (bad key, malformed request) won't improve either.
-    if (r.status < 500) throw new Error(`gemini ${r.status}: ${body.slice(0, 200)}`);
+    if (r.status === 429) {
+      // Honour Retry-After when it's short enough to wait out; otherwise bail
+      // so the visitor gets an in-world line rather than a hung request.
+      const wait = parseFloat(r.headers.get("Retry-After") || "0");
+      if (attempt < CLAUDE_RETRIES && wait > 0 && wait <= 5) {
+        await new Promise((res) => setTimeout(res, wait * 1000));
+        last = new ClaudeRateLimited(body.slice(0, 200));
+        continue;
+      }
+      throw new ClaudeRateLimited(body.slice(0, 200));
+    }
+    // 4xx other than 429 (bad key, malformed request) won't improve on retry.
+    if (r.status < 500) throw new Error(`claude ${r.status}: ${body.slice(0, 200)}`);
 
-    last = new Error(`gemini ${r.status}: ${body.slice(0, 200)}`);
-    if (attempt < GEMINI_RETRIES) {
+    last = new Error(`claude ${r.status}: ${body.slice(0, 200)}`);
+    if (attempt < CLAUDE_RETRIES) {
       await new Promise((res) => setTimeout(res, 500 * 2 ** attempt));
     }
   }
@@ -295,7 +318,7 @@ async function handleChatHistory(request, env, characterId) {
 }
 
 async function handleChat(request, env) {
-  if (!env.GEMINI_API_KEY) {
+  if (!env.ANTHROPIC_API_KEY) {
     return json({ error: "Server not configured" }, { status: 500 }, request, env);
   }
 
@@ -342,20 +365,20 @@ async function handleChat(request, env) {
   const system = characterSystemPrompt({ id: characterId, ...character }, r.display_name);
   const history = await getHistory(env, r.id, characterId);
   const recent = history.slice(-HISTORY_TURNS_TO_SEND);
-  const contents = recent.map((m) => ({
-    role: m.role === "user" ? "user" : "model",
-    parts: [{ text: m.text }],
+  const messages = recent.map((m) => ({
+    role: m.role === "user" ? "user" : "assistant",
+    content: m.text,
   }));
-  contents.push({ role: "user", parts: [{ text }] });
+  messages.push({ role: "user", content: text });
 
   const charName = character.meta.name || characterId;
   let reply;
   try {
-    reply = await geminiChat(env, system, contents);
+    reply = await claudeChat(env, system, messages);
   } catch (e) {
-    // Never surface Google's error payload to a visitor — stay in-world.
+    // Never surface the provider's error payload to a visitor — stay in-world.
     console.error("chat failed:", String(e.message || e));
-    if (e instanceof GeminiRateLimited) {
+    if (e instanceof ClaudeRateLimited) {
       return json(
         { error: `${charName} isn't answering right now. The switchboard is overloaded. Try later.`,
           rate_remaining: limitCheck.remaining },

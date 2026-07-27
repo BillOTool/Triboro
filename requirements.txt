@@ -1,1 +1,3 @@
-# No external dependencies — uses Python stdlib only
+# server.py is the local authoring tool. The public site is static and the
+# chat Worker runs on Cloudflare, so neither needs these.
+anthropic>=0.40

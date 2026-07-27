@@ -2,20 +2,44 @@
 
 A narrative puzzle game set inside a massive apartment complex sealed off from the outside world for 73 years. You play a hacker-for-hire on Triboro's social network, taking jobs that require social engineering, investigation, and moral choices — all through freeform conversation with AI-powered NPCs.
 
+> **Note:** everything below the "How to run" section still describes the
+> pre-pivot mission/desktop game and is out of date. The current build is the
+> Almanapp feed: a static public site plus a Cloudflare Worker for character
+> DMs. See `data/lore/README.md` for the canon map.
+
 ## How to run
 
-1. Get a free Gemini API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-2. Save it in a file called `.api-key` in the project root (one line, just the key)
-3. Run:
+1. Create a **personal** Anthropic API key at
+   [console.anthropic.com](https://console.anthropic.com) — sign in as
+   `botoole12@gmail.com`. This is a personal project; do not use a New
+   Consensus key.
+2. Save it in `.anthropic-key` in the project root (one line, just the key).
+   The file is gitignored.
+3. Install the SDK and run:
 
 ```bash
-cd Triboro-Demo
+pip3 install -r requirements.txt
 python3 server.py
 ```
 
-4. Open **http://localhost:8080**
+4. Author at **http://localhost:8080/admin/**, public feed at **http://localhost:8080/**
 
-The game uses Google Gemini 2.5 Flash (free tier) to power NPC conversations.
+Authoring uses **Claude Opus 5** — it writes the feed, so it gets the strong
+model. Character DMs use **Claude Haiku 4.5** (short replies, high volume,
+hard-capped). The key is read only from `.anthropic-key` or
+`TRIBORO_ANTHROPIC_KEY`; `ANTHROPIC_API_KEY` is deliberately ignored so a work
+credential in the shell can never bill this project.
+
+### Publishing
+
+`git push` deploys the public feed to
+[billotool.github.io/Triboro](https://billotool.github.io/Triboro/) via
+`.github/workflows/pages.yml`, which ships **only** `index.html`, `feed.js`,
+`feed.css` and `data/site.json`. Drafts in `data/posts.json` and source prose
+in `data/stories/` stay private. Run `build_site()` and commit `data/site.json`
+before pushing, or the live feed goes stale.
+
+Chat backend: `cd worker && npm run deploy`.
 
 ## Project structure
 
@@ -23,7 +47,7 @@ The game uses Google Gemini 2.5 Flash (free tier) to power NPC conversations.
 Triboro-Demo/
 ├── index.html        # Page structure and overlays
 ├── style.css         # All visual styling (desktop UI, windows, chat)
-├── server.py         # Python server — serves files + proxies Gemini API
+├── server.py         # Local authoring server + Claude generation
 ├── game.js           # Game engine — windows, chat system, state tracking
 ├── characters.js     # NPC system prompts and personality definitions
 ├── content.js        # World data — social posts, news articles, profiles

@@ -3,3 +3,4 @@
 __pycache__/
 data/residents.json
 data/chats.json
+.anthropic-key

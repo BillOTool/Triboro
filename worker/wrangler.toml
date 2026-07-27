@@ -8,10 +8,11 @@ compatibility_date = "2026-04-01"
 binding = "TRIBORO"
 id = "88af387c926d469a94d698943ac796d1"
 
-# Public configuration — safe to commit. Secrets (GEMINI_API_KEY) are set with
-# `wrangler secret put GEMINI_API_KEY` and never appear in this file.
+# Public configuration — safe to commit. Secrets (ANTHROPIC_API_KEY) are set with
+# `wrangler secret put ANTHROPIC_API_KEY` and never appear in this file. Use the
+# PERSONAL Anthropic key (botoole12@gmail.com), never a New Consensus key.
 [vars]
-GEMINI_MODEL = "gemini-2.5-flash"
+CLAUDE_MODEL = "claude-haiku-4-5"
 
 # Per-IP request budget on /api/chat. Sliding 1-hour window, KV-backed.
 CHAT_PER_IP_PER_HOUR = "20"
