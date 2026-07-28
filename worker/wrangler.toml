@@ -23,7 +23,18 @@ CHAT_PROVIDER = "workers-ai"
 
 # Workers AI model. Check the catalogue for current free-tier options:
 #   npx wrangler ai models
-WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct"
+#
+# Free allocation is 10,000 neurons/day, account-wide. A Triboro DM is ~1,400
+# input tokens (instructions + WORLD + character body) and ~60 output, and the
+# input neuron rate is nearly flat across model sizes — so a 70B costs about
+# what an 8B does here. Measured 2026-07-27:
+#   llama-3.1-8b-instruct        ~46 neurons/DM  ~220/day  (DEPRECATED)
+#   mistral-small-3.1-24b        ~54             ~185
+#   llama-3.3-70b-fp8-fast       ~55             ~182  <- current
+#   gpt-oss-120b                 ~55             ~182  (reasoning-tuned, stiff)
+#   kimi-k2.6                   ~160              ~62  (best voice, 3x cost)
+# Avoid deepseek-r1-distill and qwq-32b: reasoning models leak their thinking.
+WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
 # Used only when CHAT_PROVIDER = "claude".
 CLAUDE_MODEL = "claude-haiku-4-5"
@@ -32,7 +43,9 @@ CLAUDE_MODEL = "claude-haiku-4-5"
 CHAT_PER_IP_PER_HOUR = "20"
 
 # Per-IP register limit so one address can't farm tokens to multiply daily caps.
-REGISTER_PER_IP_PER_DAY = "5"
+# Raised 5 -> 20 for demos: friends sharing one wifi share one public IP, and 5
+# meant the sixth person to open the site couldn't register at all.
+REGISTER_PER_IP_PER_DAY = "20"
 
 # Hard daily request ceiling across all users. Hit it and /api/chat starts
 # refusing with 503 until UTC midnight. Cheap insurance against runaway abuse.
