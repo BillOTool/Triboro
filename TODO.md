@@ -73,6 +73,42 @@ promotion path only started working in `b193151`.
 - [ ] Repeat weekly. Drafts should need less editing each round.
 - [ ] Re-check `lore_block()` is non-empty after the first pass
 
+## Where writing should go
+
+The pipeline **samples, it does not train**. About 56 examples reach the model
+per call no matter how much exists. So the buckets pay very differently, and
+the two uncapped ones are not equally cheap.
+
+| What you write | How much reaches the model | Worth it |
+|---|---|---|
+| `authored` canon posts | last 20 only (`LORE_POST_LIMIT`) | saturates at 20 |
+| `sample-posts.md` | 3 per section (`VOICE_SAMPLES_PER_SECTION`) | diminishing past ~12/section |
+| character `.md` bodies | entire body, uncapped | **best return** |
+| `world.md` | entire file, uncapped | linear, but see cost below |
+
+**`world.md` is in every prompt, for every character, on every DM.** At 4,294
+chars it is already ~1,075 of the ~1,400-token DM prompt. Growing it to 40KB
+would drop the free allocation from ~180 DMs/day to about 35. Keep it tight.
+A character body only loads for that character, so it is the cheap one — be
+generous there.
+
+The buckets also teach different things. `world.md` and character bodies teach
+**facts**; `sample-posts.md` and authored canon teach **voice and form**. Long
+narrative prose in a character body fights the "reply in 1-3 sentences"
+instruction and makes characters narrate.
+
+`data/stories/<id>.md` is the **seed**, not a context bucket.
+`generate_from_story()` derives events and drafts from it; the prose itself
+does not persist. What persists is the posts you keep and mark canon.
+
+So: distill a story, don't paste it. Building-wide fact → a line or two in
+`world.md`. What one person saw or believes → that character's body. The
+voice → posts you edit and mark `authored: true`.
+
+Thin `sample-posts.md` sections, against a useful target of ~12: Community
+Newsletter (6), LoT community high-loyalty (7), Aurora Cult official (7),
+TB Alerts (7), LoT community low-loyalty (8).
+
 ## Backlog
 
 - [ ] Developer-render "NOW LEASING" hero — glossy off-plan CGI aesthetic,
