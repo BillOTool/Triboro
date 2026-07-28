@@ -1,11 +1,16 @@
 # Triboro — to do
 
 Standing backlog. Lives in the repo so it versions with the project.
-Last updated 2026-07-26.
+Last updated 2026-07-27.
 
-Status: **live** at https://billotool.github.io/Triboro/ — 88 posts, 134
-characters, 11 events. Two commits are local and unpushed (`b193151`,
-`3e664e5`).
+Status: **live and free** at https://billotool.github.io/Triboro/ — 88 posts,
+134 characters, 11 events. Everything is pushed. DMs work for all 134
+characters on Cloudflare Workers AI (Llama 3.3 70B), no API key, no card.
+
+Running costs are zero. The site is static files on Pages, so a visitor
+triggers no model calls. The only runtime spend is DMs, and that is on the
+free 10,000 neurons/day allocation (~180 DMs/day). Past that, visitors get
+the in-world "switchboard is overloaded" line rather than an error.
 
 ---
 
@@ -24,19 +29,35 @@ characters, 11 events. Two commits are local and unpushed (`b193151`,
       say their beat twice). Cut one of each, or leave them. Unpublish rather
       than delete — reversible.
 
-## Tomorrow — finish the Claude switch
+## The Claude switch — deliberately not finished
+
+Decided 2026-07-27: **the Anthropic key is not needed for a free, shareable
+demo, so it is not being bought yet.** The three costs are separate and only
+one is real.
+
+- Public site: static files on Pages. Free forever, no model calls.
+- Authoring: batch work on the laptop. Never runs for a visitor. Can be done
+  by hand in a Claude Code session at no marginal cost — that is how the 60
+  hand-written residents happened. The API key is only for firing off large
+  unattended generations.
+- DMs: the one genuine runtime cost, now covered by the Workers AI free tier.
+
+Done 2026-07-27:
+
+- [x] Worker deployed — all 134 characters answer DMs. Verified live against
+      principals (Gus, Doris, Rita Cheng, Kirwin) and background residents
+      (Bev Hollan, Bev Loomis, Nadine Coyle). Voice lands.
+- [x] Moved off `llama-3.1-8b-instruct` (deprecated) to
+      `llama-3.3-70b-instruct-fp8-fast`. See the table in `wrangler.toml`.
+- [x] Register limit 5 → 20 per IP per day so friends on one wifi can all get in.
+
+Still open, whenever the paid path is wanted:
 
 - [ ] Personal API key at console.anthropic.com as **botoole12@gmail.com**
-      (check the org switcher — not New Consensus) → `.anthropic-key`
-- [ ] `python3 check_claude.py` — 3 live calls, prints cost, writes nothing
-- [ ] `cd worker && npm run deploy` — DMs now run on Workers AI (free, no key)
-      — this deploy also ships the 5→134 character fix. Only needed for the
-      paid path: `npx wrangler secret put ANTHROPIC_API_KEY` + CHAT_PROVIDER=claude
-- [ ] Test a DM to a background resident on the live site (the one thing not
-      yet verified end to end)
-- [ ] Set a spend alert in the console
+      (check the org switcher — not New Consensus) → `.anthropic-key`, then
+      `python3 check_claude.py`. For DMs additionally:
+      `npx wrangler secret put ANTHROPIC_API_KEY` + `CHAT_PROVIDER = "claude"`.
 - [ ] Delete `.api-key`, revoke the old Gemini key at aistudio.google.com
-- [ ] Push `b193151` + `3e664e5`
 
 ## The main work — prime the voice ratchet
 
@@ -74,6 +95,13 @@ promotion path only started working in `b193151`.
       `~/Library/Mobile Documents/.../Desktop/Triboro-Demo`
 - [ ] `data/posts.json` has 3 posts with `status: null` (neither draft nor
       published) — legacy shape, harmless, could normalize
+- [ ] `GLOBAL_DAILY_CHAT_LIMIT = 2000` is no longer the binding constraint —
+      the 10,000 neuron/day free allocation caps DMs at ~180 first. Harmless,
+      but it stops meaning anything until the paid Claude path is switched on.
+- [ ] CodePen won't host this — it's a multi-file site that fetches
+      `site.json` and calls a cross-origin worker. The Pages URL is the share
+      link. A single-file feed-only snapshot could be built as a portfolio
+      piece if wanted.
 
 ## Ground rules
 
