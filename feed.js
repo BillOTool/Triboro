@@ -29,15 +29,25 @@ const BACKEND = (typeof window !== "undefined" && window.TRIBORO_BACKEND) || "";
 
 function nowSec() { return Math.floor(Date.now() / 1000); }
 
+// ─── per-VISIT freshness ───────────────────────────────────────────────
+// Order, subset and the arrival drip were all keyed to localStorage, so every
+// visit produced an identical feed. These are regenerated on each page load,
+// so reopening the site gives a different slice in a different order that
+// arrives again from scratch. Nothing is written — this is the same corpus,
+// re-dealt.
+const VISIT_SEED = Math.random().toString(36).slice(2) + ":" + Date.now();
+const VISIT_EPOCH = nowSec();
+
+// How many events a single visit shows. The rest of the corpus is still there,
+// it just isn't dealt this time.
+const FEED_EVENTS_PER_VISIT = 7;
+
 function viewerEpoch() {
-  if (RESIDENT && RESIDENT.created) return RESIDENT.created;
-  let v = parseInt(localStorage.getItem(EPOCH_KEY) || "0", 10);
-  if (!v) {
-    v = nowSec();
-    localStorage.setItem(EPOCH_KEY, String(v));
-  }
-  return v;
+  // Per visit, not per browser: the timeline restarts on every load so posts
+  // arrive again instead of the whole archive being instantly old.
+  return VISIT_EPOCH;
 }
+
 
 function viewerId() {
   if (RESIDENT && RESIDENT.id) return RESIDENT.id;
@@ -69,7 +79,7 @@ function hashSeed(s) {
 }
 
 function shuffleByViewer(items) {
-  const vid = viewerId();
+  const vid = VISIT_SEED;
   return [...items]
     .map(it => ({ it, k: hashSeed(vid + ":" + (it.id || "")) }))
     .sort((a, b) => a.k - b.k)
@@ -81,7 +91,7 @@ function shuffleByViewer(items) {
 // triboro_offset (or are within seconds of each other after jitter), so the
 // shuffle still gives two viewers different orders within a cluster.
 function sortNewestFirst(items) {
-  const vid = viewerId();
+  const vid = VISIT_SEED;
   return [...items].sort((a, b) => {
     const offA = a.triboro_offset || 0;
     const offB = b.triboro_offset || 0;
@@ -273,8 +283,14 @@ function renderFeed() {
     (byEvent[eid] ??= []).push(p);
   }
 
-  const eventOrder = SITE.events
-    .filter(e => isVisibleNow(e) && byEvent[e.id])
+  // Deal this visit a hand of events rather than the whole archive. Ordered
+  // by the visit seed, cut to FEED_EVENTS_PER_VISIT, then put back into
+  // newest-first order so the feed still reads chronologically.
+  const withPosts = SITE.events.filter(e => isVisibleNow(e) && byEvent[e.id]);
+  const dealt = shuffleByViewer(withPosts).slice(0, FEED_EVENTS_PER_VISIT);
+  const dealtIds = new Set(dealt.map(e => e.id));
+  const eventOrder = withPosts
+    .filter(e => dealtIds.has(e.id))
     .sort((a, b) => (b.triboro_offset || 0) - (a.triboro_offset || 0) || b.created - a.created);
 
   let html = "";
@@ -291,12 +307,17 @@ function renderFeed() {
     }
   }
 
-  if (byEvent._misc) {
-    html += `<div class="section-label">Loose chatter</div>`;
-    for (const p of byEvent._misc) html += postHtml(p);
+  // Loose chatter is also cut, and drawn from posts whose event wasn't dealt
+  // so there's always something the last visit didn't show.
+  const undealt = [];
+  for (const e of withPosts) if (!dealtIds.has(e.id)) undealt.push(...byEvent[e.id]);
+  const chatter = shuffleByViewer([...(byEvent._misc || []), ...undealt]).slice(0, 6);
+  if (chatter.length) {
+    html += `<div class="section-label">Elsewhere in the building</div>`;
+    for (const p of chatter) html += postHtml(p);
   }
 
-  if (!pinned.length && !eventOrder.length && !byEvent._misc) {
+  if (!pinned.length && !eventOrder.length && !chatter.length) {
     html = `<div class="empty">The bulletin is quiet today. Check back in a bit.</div>`;
   }
 
@@ -764,14 +785,14 @@ function setMastDay() {
 function resetView(ev) {
   if (ev) ev.preventDefault();
   const note = RESIDENT
-    ? "Restart Triboro from Day 1? This signs you out (your resident profile and DM history stay on the server — your recovery URL still works) and gives you a fresh anonymous timeline."
-    : "Restart Triboro from Day 1? Your personal timeline resets so you'll re-experience posts as they drip in.";
+    ? "Reshuffle the feed? This signs you out (your resident profile and DM history stay on the server — your recovery URL still works) and deals a fresh set of stories."
+    : "Reshuffle the feed? You'll get a different set of stories, in a different order, arriving from scratch.";
   if (!confirm(note)) return;
-  localStorage.removeItem(EPOCH_KEY);
-  localStorage.removeItem(TOKEN_KEY);  // for registered viewers, clear so epoch falls back to a fresh anon
-  // Keep viewer_id so the per-viewer shuffle stays stable across resets.
-  location.reload();
+  localStorage.removeItem(EPOCH_KEY);   // legacy key from when the clock persisted
+  localStorage.removeItem(TOKEN_KEY);
+  location.reload();                    // a new load means a new VISIT_SEED
 }
+
 
 // ─── boot ───
 
