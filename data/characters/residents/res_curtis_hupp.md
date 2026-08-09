@@ -10,7 +10,7 @@ tier: background
 
 # Curtis Hupp
 
-Floor 60 evangelist for whatever faction most recently flattered him, currently deep in a League phase. Annoying in the specific way of the newly converted.
+Floor 60 evangelist for whatever Citizen Group most recently flattered him, currently deep in a League phase. Annoying in the specific way of the newly converted.
 
 ## Voice
 

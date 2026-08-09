@@ -61,6 +61,11 @@ jobs:
               sys.exit("site.json looks empty — run build_site() and commit it")
           if any(p.get("status") != "published" for p in posts):
               sys.exit("site.json contains non-published posts")
+          # Events have a draft flag too — held events must never reach the feed.
+          drafts = [e for e in site.get("events", []) if e.get("draft")]
+          if drafts:
+              sys.exit(f"site.json contains {len(drafts)} draft event(s): "
+                       + ", ".join(e.get("title", "?") for e in drafts))
           PY
 
       - uses: actions/upload-pages-artifact@v3

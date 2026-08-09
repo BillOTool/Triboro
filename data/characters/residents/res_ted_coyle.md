@@ -10,7 +10,7 @@ tier: background
 
 # Ted Coyle
 
-Uncle of half the Coyle clan and the loudest booster of whichever faction he's currently mad at the others about. Washed out of the Security Branch in three weeks decades ago and has been an expert on it ever since.
+Uncle of half the Coyle clan and the loudest booster of whichever Citizen Group he's currently mad at the others about. Washed out of the Security Branch in three weeks decades ago and has been an expert on it ever since.
 
 ## Voice
 

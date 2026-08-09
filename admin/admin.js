@@ -171,9 +171,13 @@ function renderEvents() {
   for (const e of state.events) {
     const li = document.createElement("li");
     const date = new Date(e.created * 1000).toLocaleString();
-    li.innerHTML = `<div><strong>${escapeHtml(e.title)}</strong></div>
+    const badge = e.draft
+      ? `<span class="badge badge-draft">DRAFT</span> `
+      : `<span class="badge badge-live">PUBLIC</span> `;
+    li.innerHTML = `<div>${badge}<strong>${escapeHtml(e.title)}</strong></div>
       <div class="meta">${date} · id ${e.id}</div>
       <div class="post-actions">
+        <button type="button" data-act="toggle-draft" data-id="${e.id}">${e.draft ? "Publish event" : "Hold as draft"}</button>
         <button type="button" data-act="regen" data-id="${e.id}">Generate reactions</button>
         <button type="button" data-act="delete-event" data-id="${e.id}" class="danger">Delete</button>
       </div>`;
@@ -191,6 +195,13 @@ async function handleEventAction(ev) {
     if (charIds.length === 0) { alert("Pick at least one character (left column) before generating."); return; }
     if (!confirm(`Generate fresh reactions from ${charIds.length} character(s)? This calls the LLM.`)) return;
     await generateForEvent(id);
+  } else if (btn.dataset.act === "toggle-draft") {
+    const e = state.events.find((x) => x.id === id);
+    if (!e) return;
+    try {
+      await api("/event/" + id, { method: "PUT", body: { draft: !e.draft } });
+      await loadEvents(); renderEvents();
+    } catch (err) { alert("Couldn't update: " + err.message); }
   } else if (btn.dataset.act === "delete-event") {
     if (!confirm("Delete this event? Posts attached to it stay (they'll show as loose chatter).")) return;
     try {

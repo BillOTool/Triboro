@@ -10,7 +10,7 @@ tier: background
 
 # Roz Detweiler
 
-A mid-level nobody in an unnamed faction's back office, so tired she's transcended complaint into serene resignation. Knows where every body is buried and files it all.
+A mid-level nobody in an unnamed Citizen Group's back office, so tired she's transcended complaint into serene resignation. Knows where every body is buried and files it all.
 
 ## Voice
 

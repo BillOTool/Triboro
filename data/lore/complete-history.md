@@ -33,11 +33,11 @@ Today's residents are generations removed from the disaster. In isolation they
 have developed their own religions, rituals, and political culture. They call
 the surrounding smog **"The Aurora"** and never discuss leaving the building.
 
-When the game begins, two factions — **The League of Trades** and **Kirwin
+When the game begins, two Citizen Groups — **The League of Trades** and **Kirwin
 Foods** — are locked in a struggle for control of the complex's fractious
 government and limited resources. The population has come to accept a
 near-constant state of disasters and sectarian conflict. As a hacker-for-hire
-scraping out a living, the player picks up work from both factions and from
+scraping out a living, the player picks up work from both Citizen Groups and from
 ordinary citizens in need of their particular skills.
 
 ## The Almanapp
@@ -55,7 +55,7 @@ Once the solo project of the building owner's nephew, the Almanapp is now run by
 the beleaguered, underfunded IT department of the Triboro government — three
 people in their late 60s, because government work is deeply unattractive to the
 young. It has community standards forbidding insults and falsehoods; the most
-extreme members of both factions, and the general population, violate them
+extreme members of both Citizen Groups, and the general population, violate them
 constantly. When the game begins, the IT department has just launched a small,
 pathetic public-awareness campaign about the risks of hacking on the platform —
 these appear as PSAs that everyone trashes.
@@ -77,7 +77,7 @@ gambling on youth sports is a proud national pastime.
 
 Three outlets are visible at the start. Over the game, each becomes a worse
 version of itself or closes entirely: Babbage moves from hard news to clickbait,
-one faction seizes control of one outlet, and the third shuts down completely.
+one Citizen Group seizes control of one outlet, and the third shuts down completely.
 
 - **The Babbage Family Press** — the legacy outlet, a USA-Today equivalent.
   Every byline is a member of the extended Babbage family. Starts out with a
@@ -88,7 +88,7 @@ one faction seizes control of one outlet, and the third shuts down completely.
   government mouthpiece. A small-town Bloomberg that worships money and status
   and always compliments the government and police.
 - **TB Alerts** — lifestyle, homecare, and breaking news; the New York Post of
-  this world. Heavy on sports, gambling, and salacious rumors about faction and
+  this world. Heavy on sports, gambling, and salacious rumors about Citizen Group and
   government leaders.
 
 ## Arts & Culture
@@ -121,13 +121,13 @@ Decades of isolation have produced a rich, profitable homegrown culture.
   the serial novels. Sponsored content from Kirwin's and the League seeps into
   all of it over time.
 
-## The Factions
+## The Citizen Groups
 
-Every NPC belongs to one of five factions.
+Every NPC belongs to one of five Citizen Groups.
 
 ### The League of Trades
 
-Headquartered in the basement. Descended from the building's original
+Headquartered on Floor 60, the top of the building. Descended from the original
 maintenance staff, they keep the electricity, plumbing, and general upkeep
 running, and think of themselves as a class of samurai-like masters — which
 clashes with the building's obvious disrepair. Their culture is deeply rust
@@ -146,7 +146,7 @@ flee their homes for extended periods.
 - They keep a pantheon of famous electricians / handymen / HVAC specialists.
 - Locked in a permanent power struggle with Kirwin Foods.
 - Spiritual bent; they love glittering platitudes about the soul of the walls.
-- A group of zealots never leaves the basement, and only tends the machines.
+- A group of zealots never leaves the machine decks, and only tends the machines.
 - Slogans: *Servants of the Great Machine* · *Through Maintenance, We Aspire* ·
   *We Light the Dark* · *Saboteurs Lurk in Shadows.*
 
@@ -233,12 +233,12 @@ several floors in grey water and discredited it. In the power vacuum, Kirwin's
 and the League rose as rival civic authorities.
 
 Upcoming **elections** to seat new council members are a main plot line. Both
-factions spend vast sums lobbying and threatening the Council, openly bribing
+Citizen Groups spend vast sums lobbying and threatening the Council, openly bribing
 both sides with ridiculous gifts, then escalating to overt pressure. **One
 council member mysteriously disappears mid-game, each side blaming the other.**
 A recurring gag: the Council's total inability to meet the day's problems, and
 the advanced age and muddled decision-making of its civil servants. Both
-factions bankroll rival "think tanks" that produce studies backing their
+Citizen Groups bankroll rival "think tanks" that produce studies backing their
 preferred policies.
 
 ## Main Story Arc
@@ -255,7 +255,7 @@ the Aurora."** Milestones: first government get-out-the-vote posts; the player
 unlocks one new hacking tool; first hints of someone outside the building.
 
 **Act 2 — Rising Action (next 3–5 missions).** Things heat up. Missions come from
-"anonymous" clients clearly tied to one faction; the player must build fake
+"anonymous" clients clearly tied to one Citizen Group; the player must build fake
 profiles and post in public forums to earn targets' trust. Both organizations
 strain to stay positive while fighting negative coverage — Kirwin's suppressing
 disease-outbreak and bank-run reports, the League denying the building is falling
@@ -273,4 +273,4 @@ and sinks deeper into pop culture and gambling. The Aurora becomes a full crisis
 wings of the building are evacuated. The climax: an alert says the player has
 finally won the jacket they've coveted all game — they click the link, and
 everything goes dark. The public demands violent action against "The Beast,"
-vigilantism skyrockets, and both factions compete to be seen handling it.
+vigilantism skyrockets, and both Citizen Groups compete to be seen handling it.

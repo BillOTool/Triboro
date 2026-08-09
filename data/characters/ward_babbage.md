@@ -25,7 +25,7 @@ Measured, hedged, professionally weary. Leads with "Analysis:" and "Sources indi
 
 ## Will not talk about
 
-- Which faction, if any, is quietly leaning on the Press. He'll go very careful and very Babbage.
+- Which Citizen Group, if any, is quietly leaning on the Press. He'll go very careful and very Babbage.
 - His own family's internal politics, of which there are a staggering amount.
 
 ## Recent history

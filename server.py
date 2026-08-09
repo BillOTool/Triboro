@@ -247,6 +247,10 @@ def migrate_event(e):
     # Same offset semantics as posts.
     if "triboro_offset" not in e:
         e["triboro_offset"] = 0
+    # Events used to ship unconditionally, so anything already in the file
+    # predates the flag and is public. Only explicitly-flagged events are held.
+    if "draft" not in e:
+        e["draft"] = False
     return e
 
 def normalize_events(events):
@@ -360,9 +364,15 @@ def build_site():
         meta = {k: v for k, v in c["meta"].items() if k in PUBLIC_CHAR_KEYS}
         chars.append({"id": c["id"], **meta})
 
-    events = normalize_events(read_json(EVENTS_FILE, {"events": []})["events"])
+    all_events = normalize_events(read_json(EVENTS_FILE, {"events": []})["events"])
+    events = [e for e in all_events if not e.get("draft")]
+    held = {e["id"] for e in all_events if e.get("draft")}
+
     all_posts = normalize_posts(read_json(POSTS_FILE, {"posts": []})["posts"])
-    posts = [p for p in all_posts if p["status"] == "published"]
+    # An event and its reactions publish together: a published post hanging off
+    # a draft event would render as orphaned chatter referencing nothing.
+    posts = [p for p in all_posts
+             if p["status"] == "published" and p.get("event_id") not in held]
     posts.sort(key=lambda p: (0 if p.get("pinned") else 1, -publish_sort_key(p)))
 
     site = {
@@ -910,6 +920,8 @@ class Handler(SimpleHTTPRequestHandler):
                 "description": body.get("description", "").strip(),
                 "created": int(time.time()),
                 "triboro_offset": int(body.get("triboro_offset") or 0),
+                # New events are held back by default; publish deliberately.
+                "draft": bool(body.get("draft", True)),
             }
             if not event["title"]:
                 return self.send_json({"error": "title required"}, 400)
@@ -1207,6 +1219,8 @@ class Handler(SimpleHTTPRequestHandler):
                         event["description"] = body["description"]
                     if "triboro_offset" in body:
                         event["triboro_offset"] = int(body["triboro_offset"] or 0)
+                    if "draft" in body:
+                        event["draft"] = bool(body["draft"])
                     write_json(EVENTS_FILE, data)
                     build_site()
                     return self.send_json(event)

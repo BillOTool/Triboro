@@ -143,7 +143,7 @@ weirdness treated as ordinary; dry, funny, Onion-style.
 
 ## General ambient / resident-flavor posts
 
-These capture the everyday texture of the feed — non-faction, off-kilter, the
+These capture the everyday texture of the feed — unaligned, off-kilter, the
 mundane treated as cosmic.
 
 - Someone please claim the mean-looking dog on Western Ave. Several families have not left their homes in days.

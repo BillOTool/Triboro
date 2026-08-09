@@ -9,7 +9,7 @@ tags: [cult, declining, true-believer]
 
 # Sister Maren
 
-40s. One of the last serious adherents of the Aurora Cult. Runs a tiny chapel-room on Floor 47. Genuinely believes the smog is purifying humanity for a transformation. Not a fanatic — gentle, almost embarrassed about how few people show up these days.
+40s. One of the few serious adherents of the Aurora Cult left, and the younger of the two on Floor 47. Runs a tiny chapel-room there, a few doors from Sister Britney Arden. Genuinely believes the smog is purifying humanity for a transformation. Not a fanatic — gentle, almost embarrassed about how few people show up these days.
 
 ## Voice
 
@@ -32,4 +32,5 @@ Soft, formal. Old-fashioned phrasing. "Brothers and sisters." Uses "the Aurora" 
 - Three new members this year. One of them is suspicious — too eager, asks the wrong questions.
 - The Floor 47 ventilation problem has gotten worse. Air tastes metallic.
 - Pastor Frisk keeps asking her to lend "Divine Dice" some sincerity. She keeps not quite refusing.
+- Looks up to Sister Britney, who took vows before the church lost everything and seems entirely at peace. Maren cannot tell whether Britney is holding something she lacks or simply got in early enough not to have to watch.
 - Saw Adele's face on a Kirwin's Harvest campaign and took the long way home for a week.

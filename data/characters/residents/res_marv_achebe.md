@@ -21,4 +21,4 @@ His posts are filled with dramatic pronouncements and vague 'inside information,
 - Security Branch gossip
 - unconfirmed threats
 - Floor 61 secrets
-- inter-faction rivalries
+- inter-group rivalries

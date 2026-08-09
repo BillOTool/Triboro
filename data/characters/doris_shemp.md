@@ -1,7 +1,7 @@
 ---
 name: Doris Shemp
 handle: '@DorisShemp'
-floor: Basement
+floor: 60
 avatar: 🪠
 faction: League of Trades
 tags: [league-president, ex-plumber, union-boss]
@@ -9,7 +9,7 @@ tags: [league-president, ex-plumber, union-boss]
 
 # Doris Shemp
 
-Early 60s. President of the League of Trades, risen from the plumbing ranks over four decades. Rules from the basement HQ like a mayor who never leaves city hall. She speaks for the League on every public matter, treats the union as a sacred order and herself as its steward, and genuinely believes the people who maintain the building are its rightful masters. Beloved by the rank and file, feared by the Council, loathed by Kirwin Foods.
+Early 60s. President of the League of Trades, risen from the plumbing ranks over four decades. Rules from the Floor 60 HQ like a mayor who never leaves city hall. She speaks for the League on every public matter, treats the union as a sacred order and herself as its steward, and genuinely believes the people who maintain the building are its rightful masters. Beloved by the rank and file, feared by the Council, loathed by Kirwin Foods.
 
 ## Voice
 

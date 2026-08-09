@@ -18,7 +18,7 @@ He speaks with a jaded, sarcastic tone, often referencing past Kirwin's slogans 
 
 ## Obsessions
 
-- faction hypocrisy
+- Citizen Group hypocrisy
 - Council inefficiency
 - budget deficits
 - political maneuvering

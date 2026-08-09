@@ -10,7 +10,7 @@ tier: background
 
 # Trish Coyle
 
-The Coyle who runs the family's floor like an HOA and boosts whatever faction the clan is currently aligned with. Order and loyalty, enforced by casserole and guilt.
+The Coyle who runs the family's floor like an HOA and boosts whatever Citizen Group the clan is currently aligned with. Order and loyalty, enforced by casserole and guilt.
 
 ## Voice
 

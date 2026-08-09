@@ -10,7 +10,7 @@ tier: background
 
 # Otis Sweetin
 
-A League zealot of the basement-devotional variety who genuinely believes the walls have a soul and tells you so, at length, unprompted.
+A League zealot of the machine-deck devotional variety who genuinely believes the walls have a soul and tells you so, at length, unprompted.
 
 ## Voice
 
