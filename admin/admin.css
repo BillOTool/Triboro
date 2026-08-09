@@ -275,3 +275,28 @@ code { background: var(--bg); padding: 2px 6px; border-radius: 3px; font-size: 1
   margin: 4px 0 2px;
   line-height: 1.45;
 }
+
+/* Open-the-site links, pushed to the right of the header nav. */
+.site-links {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+.site-link {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: rgba(201, 169, 110, 0.08);
+  white-space: nowrap;
+}
+.site-link:hover { background: rgba(201, 169, 110, 0.18); }
+.site-link.live {
+  border-color: var(--border);
+  color: var(--muted);
+  background: transparent;
+}
+.site-link.live:hover { color: var(--accent); border-color: var(--accent); }
