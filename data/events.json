@@ -3,7 +3,7 @@
     {
       "id": "9131a8abf6",
       "title": "Elevators stuck for 6 weeks, riders refuse rescue",
-      "description": "Around 9 AM the Floor 41 elevator banks froze between floors. Maintenance took six hours to clear. By hour two there was a small impromptu salon in the lobby. Rita Cheng had a folding chair.",
+      "description": "The standoff continues with no end in sight.",
       "created": 1777748820,
       "triboro_offset": 0,
       "draft": false
@@ -11,7 +11,7 @@
     {
       "id": "8be44bad83",
       "title": "Water reaches six floors; Council says further study needed before flood emergency declared",
-      "description": "Standing water appeared on Floors 2, 4, 6, 9, 11 and 34 over a single morning. The League called it unrelated to the pressure anomaly on 38-41.",
+      "description": "Standing water appeared on Floors 2, 4, 6, 9, 11 and 34 over a single morning.\n\nThe League of Trades and Council called it unrelated to the pressure anomaly on 38-41.",
       "created": 1778344669,
       "triboro_offset": 0,
       "draft": false
@@ -35,7 +35,7 @@
     {
       "id": "7a90615c88",
       "title": "Aurora Report: Green for the eleventh straight day",
-      "description": "The daily Aurora Report held at Green for an eleventh consecutive day. The Aurora Cult gave thanks; meteorologists urged calm.",
+      "description": "The daily Aurora Report held at Green for an eleventh consecutive day. Meteorologists urged calm.",
       "created": 1784083433,
       "triboro_offset": 0,
       "draft": false
@@ -43,7 +43,7 @@
     {
       "id": "9b7a0c5089",
       "title": "League of Trades reports 'minor' pressure anomaly on Floors 38-41",
-      "description": "The League acknowledged a water-pressure anomaly across Floors 38-41, called it minor, and blamed 'possible sabotage.' Residents on those floors report worse.",
+      "description": "The League acknowledged a water-pressure anomaly across Floors 38-41, called it minor, and blamed 'possible sabotage.'",
       "created": 1784083433,
       "triboro_offset": 0,
       "draft": false
@@ -59,15 +59,7 @@
     {
       "id": "d8c790a360",
       "title": "Aurora Cult announces 'Divine Dice' night to boost attendance",
-      "description": "With attendance flagging, the Aurora Cult announced another Divine Dice night, pitched as a way for wagers to win the Aurora's favor.",
-      "created": 1784083433,
-      "triboro_offset": 0,
-      "draft": false
-    },
-    {
-      "id": "8762380b0e",
-      "title": "Child on Floor 52 says she saw 'a boy in the Aurora'; parents told not to worry",
-      "description": "A girl on Floor 52 told neighbors she saw a boy's face in the smog outside a sealed window. The Health Committee advised parents it was almost certainly nothing.",
+      "description": "With attendance flagging, the Aurora Cult announced another gambling event.",
       "created": 1784083433,
       "triboro_offset": 0,
       "draft": false
@@ -75,7 +67,7 @@
     {
       "id": "9c8db9e749",
       "title": "Councilman Gil Duffy vanishes; Council seat empty as Citizen Groups trade blame",
-      "description": "Councilman Duffy failed to appear at the election-prep session and cannot be found. His office on 29 is sealed. The League and Kirwin Foods each accuse the other; the Security Branch says it is 'looking into it.' The building is not staying quiet.",
+      "description": "Councilman Duffy failed to appear at the election-prep session and cannot be found. His office on 29 is sealed.",
       "created": 1784086044,
       "triboro_offset": 0,
       "draft": false
@@ -85,14 +77,6 @@
       "title": "Clergy exemption schedules turn up in Council records",
       "description": "Election-prep filing turned up the Aurora Cult's old clergy exemption schedules: platinum membership at Kirwin's, blanket exemption from Public Service, entertainment expensed as sermon research. Every line of it is decades expired. The Council says the review is ongoing.",
       "created": 1786232840,
-      "triboro_offset": 0,
-      "draft": false
-    },
-    {
-      "id": "9cefd02e9a",
-      "title": "Newsletter profiles the building's last midnight observance, attendance one",
-      "description": "The Community Newsletter ran a filler item on the midnight observance still held weekly on 47, noting attendance has been one person for some time. The piece calls her Triboro's loneliest devotee.",
-      "created": 1786232841,
       "triboro_offset": 0,
       "draft": false
     },
@@ -107,31 +91,15 @@
     {
       "id": "1ebcd587c1",
       "title": "Mask warning in effect East side; compliance called 'spotty'",
-      "description": "An Aurora advisory covering the East ran through the morning. Security put the compliance rate at 'spotty' and declined to define it. Several residents were photographed unmasked and appear pleased about it.",
+      "description": "An Aurora advisory covering the East ran through the morning. Security put the compliance rate at 'spotty' and declined to define it.",
       "created": 1786236244,
-      "triboro_offset": 0,
-      "draft": false
-    },
-    {
-      "id": "51fd7cdd14",
-      "title": "Betting accounts locked for a third week; operator cites a filing issue",
-      "description": "Access to the books has been down for going on three weeks. The operator continues to describe it as a filing issue. No filings have been produced. Wagering has moved to hallways, stairwells, and the area outside the market.",
-      "created": 1786236245,
-      "triboro_offset": 0,
-      "draft": false
-    },
-    {
-      "id": "bc26ee68b9",
-      "title": "Chorus goes on two voices short; management calls it 'a texture choice'",
-      "description": "Two members of the evening chorus did not appear. The company performed anyway. A spokesman for the Theater District described the resulting sound as 'a texture choice.' Ticket holders were not offered anything.",
-      "created": 1786236246,
       "triboro_offset": 0,
       "draft": false
     },
     {
       "id": "ccf94c2fab",
       "title": "Winter sun schedule posted; West window sessions capped at four minutes",
-      "description": "The seasonal window schedule is up. Sessions on the West side are capped at four minutes a floor and the line is managed by floorship. Signs asking residents not to press their hands on the glass have been reissued, as they are every year, to no effect.",
+      "description": "The seasonal window schedule is up. Sessions on the West side are capped at four minutes a floor and the line is managed by floorship.",
       "created": 1786236247,
       "triboro_offset": 0,
       "draft": false
@@ -139,7 +107,7 @@
     {
       "id": "f1d479a9b4",
       "title": "Chamber of commerce disbands after third robbery; carpet fund gone with it",
-      "description": "The West-side chamber of commerce has dissolved following a third robbery of its accounts. The money had been raised to replace the hallway carpet, which is worn through to the beige floor near every elevator bank. Replacement would have required agreement from every floorship regardless.",
+      "description": "The West-side chamber of commerce has dissolved following a third robbery of its accounts. The money had been raised to replace the hallway carpet.",
       "created": 1786236248,
       "triboro_offset": 0,
       "draft": false
@@ -147,15 +115,15 @@
     {
       "id": "4542e049c6",
       "title": "Bread Basket tours remain suspended; Kirwin's cites 'the state of the world'",
-      "description": "Kirwin Foods confirmed the public tours of the Bread Basket will not resume this year, citing the state of the world. School field trips ended some time ago. The Basket continues to feed the building.",
+      "description": "Kirwin Foods confirmed the public tours of the Bread Basket will not resume this year, citing recent communal tensions.",
       "created": 1786236249,
       "triboro_offset": 0,
       "draft": false
     },
     {
       "id": "d6e18b7c42",
-      "title": "Blind Fish of unusual size pulled from the hatchery streams",
-      "description": "Pickers in the Bread Basket report several Blind Fish well past two feet coming out of the covered streams this season. Kirwin Foods says growth is within expected range. TB Alerts has opened a line on the largest fish of the year.",
+      "title": "Human Interest: Blind Fish of unusual size pulled from the hatchery streams",
+      "description": "Pickers in the Bread Basket report several Blind Fish well past two feet coming out of the covered streams this season. Kirwin Foods says growth is within expected range.",
       "created": 1786236250,
       "triboro_offset": 0,
       "draft": false
@@ -165,14 +133,6 @@
       "title": "Consolidation Commission begins serving dissolution notices to floorships",
       "description": "The Government Consolidation Commission has begun serving notices on floorship-level governments, which it recommends dissolving. The Commission's finding is that floorships consistently fail to field enough candidates for procedural work, and that business has stalled building-wide as a result. Notices are being served in person.",
       "created": 1786236251,
-      "triboro_offset": 0,
-      "draft": false
-    },
-    {
-      "id": "05d7044493",
-      "title": "Second Story floorship office found staffed by one man",
-      "description": "An officer serving dissolution notices on the Second Story found the floorship office occupied by a single official, who thanked her for her time. He appeared to have slept in the office. He did not contest the notice.",
-      "created": 1786236252,
       "triboro_offset": 0,
       "draft": false
     },
@@ -187,7 +147,7 @@
     {
       "id": "93c4afae0a",
       "title": "Babbage Press revisits the vacant unit left open since the spring riot",
-      "description": "The unit vacated during the spring riot remains open and unsecured. The family left in the middle of the night and has not returned. Municipal inspectors visit occasionally; so do others. The Press first called it a symbol of blight some years ago and has now called it that again.",
+      "description": "The unit vacated during the spring riot remains open and unsecured. The family left in the middle of the night and has not returned. Municipal inspectors visit occasionally; so do others. The Press first called it a symbol of blight last spring. Why no progress?",
       "created": 1786236254,
       "triboro_offset": 0,
       "draft": false
@@ -195,7 +155,7 @@
     {
       "id": "5655659d4e",
       "title": "Kirwin's Komunity center opens on Floor 31, a League floor",
-      "description": "A new Kirwin's Komunity center has opened on 31. The centers can be sited where the zoning does not permit food storage, which tends to place them close to the League. The new posting is a dentist offering free checkups and snack taste-tests. He has been distributing hand-drawn cards.",
+      "description": "A new Kirwin's Komunity center has opened on 31.",
       "created": 1786236255,
       "triboro_offset": 0,
       "draft": false
@@ -205,22 +165,6 @@
       "title": "Sand Cakes taste-test draws a line; feedback cards collected by hand",
       "description": "The new Kirwin's snack is being trialled at Komunity centers ahead of a floor-drop rollout. Residents are asked to fill out a card. The cards are collected by hand and sent to headquarters. Reception has been mixed and attendance has been high.",
       "created": 1786236256,
-      "triboro_offset": 0,
-      "draft": false
-    },
-    {
-      "id": "84b6ed0bc6",
-      "title": "Council urges parents to know what their children are calling themselves",
-      "description": "A Council advisory has asked parents to take an interest in what their children's groups are named and what those groups believe they are for. The advisory does not use the word militia. Every response to it does.",
-      "created": 1786236257,
-      "triboro_offset": 0,
-      "draft": false
-    },
-    {
-      "id": "18a486357c",
-      "title": "Man seen waiting on East 2nd near the market holding a silver yoyo",
-      "description": "Several residents have reported a man standing near the market on East 2nd for most of a morning, holding a silver yoyo and not using it. He spoke to at least one person. Nobody has said what about. Kirwin's Komunity centers are widely assumed to run the building's private detectives, though the assumption has never been demonstrated.",
-      "created": 1786236258,
       "triboro_offset": 0,
       "draft": false
     }
