@@ -174,9 +174,11 @@ function renderEvents() {
     const badge = e.draft
       ? `<span class="badge badge-draft">DRAFT</span> `
       : `<span class="badge badge-live">PUBLIC</span> `;
-    li.innerHTML = `<div>${badge}<strong>${escapeHtml(e.title)}</strong></div>
+    li.innerHTML = `<div><strong class="event-title" data-id="${e.id}">${escapeHtml(e.title)}</strong> ${badge}</div>
+      <div class="event-desc" data-id="${e.id}">${escapeHtml(e.description || "")}</div>
       <div class="meta">${date} · id ${e.id}</div>
       <div class="post-actions">
+        <button type="button" data-act="edit-event" data-id="${e.id}">edit</button>
         <button type="button" data-act="toggle-draft" data-id="${e.id}">${e.draft ? "Publish event" : "Hold as draft"}</button>
         <button type="button" data-act="regen" data-id="${e.id}">Generate reactions</button>
         <button type="button" data-act="delete-event" data-id="${e.id}" class="danger">Delete</button>
@@ -195,6 +197,79 @@ async function handleEventAction(ev) {
     if (charIds.length === 0) { alert("Pick at least one character (left column) before generating."); return; }
     if (!confirm(`Generate fresh reactions from ${charIds.length} character(s)? This calls the LLM.`)) return;
     await generateForEvent(id);
+  } else if (btn.dataset.act === "edit-event") {
+    // Headline and description edit in place, same feel as post editing.
+    // Events carry no canon flag — they're the author's framing, not a
+    // character's voice, so nothing here feeds build_lore_context().
+    const ev = state.events.find((x) => x.id === id);
+    if (!ev) return;
+    const titleEl = document.querySelector(`.event-title[data-id="${id}"]`);
+    const descEl = document.querySelector(`.event-desc[data-id="${id}"]`);
+    if (titleEl.classList.contains("editing")) return;
+
+    for (const el of [titleEl, descEl]) {
+      el.contentEditable = "true";
+      el.classList.add("editing");
+    }
+    titleEl.focus();
+    const sel = window.getSelection();
+    const r = document.createRange();
+    r.selectNodeContents(titleEl);
+    r.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(r);
+
+    const hint = document.createElement("div");
+    hint.className = "edit-hint";
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    hint.textContent = `headline + description · ${isMac ? "⌘" : "Ctrl"}+Enter to save · Esc to cancel · click away saves too`;
+    descEl.parentNode.insertBefore(hint, descEl.nextSibling);
+
+    let committed = false;
+    const cleanup = () => {
+      for (const el of [titleEl, descEl]) {
+        el.contentEditable = "false";
+        el.classList.remove("editing");
+        el.onkeydown = null;
+        el.onblur = null;
+      }
+      hint.remove();
+    };
+    const save = async () => {
+      if (committed) return;
+      // Tabbing between headline and description shouldn't commit.
+      if (document.activeElement === titleEl || document.activeElement === descEl) return;
+      committed = true;
+      const title = titleEl.innerText.trim();
+      const description = descEl.innerText.trim();
+      cleanup();
+      if (!title) {                       // a title is required by the API
+        titleEl.innerText = ev.title;
+        descEl.innerText = ev.description || "";
+        return;
+      }
+      if (title !== ev.title || description !== (ev.description || "")) {
+        try {
+          await api("/event/" + id, { method: "PUT", body: { title, description } });
+          await loadEvents(); renderEvents(); refreshNewPostPickers();
+        } catch (err) { alert("Couldn't save: " + err.message); }
+      }
+    };
+    const cancel = () => {
+      if (committed) return;
+      committed = true;
+      titleEl.innerText = ev.title;
+      descEl.innerText = ev.description || "";
+      cleanup();
+    };
+    for (const el of [titleEl, descEl]) {
+      el.onkeydown = (e) => {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); el.blur(); save(); }
+        else if (e.key === "Escape") { e.preventDefault(); cancel(); }
+      };
+      el.onblur = () => setTimeout(save, 0);   // let focus settle first
+    }
+    return;
   } else if (btn.dataset.act === "toggle-draft") {
     const e = state.events.find((x) => x.id === id);
     if (!e) return;
