@@ -553,15 +553,6 @@ footer .reset-link:hover { color: var(--accent); }
   margin-bottom: 12px;
 }
 
-/* ─── about page ─── */
-
-.about-prose { font-size: 17px; line-height: 1.7; }
-.about-prose h2 {
-  font-family: "Bodoni 72", "Didot", serif;
-  font-size: 28px;
-  margin-top: 28px;
-}
-
 /* ─── empty state ─── */
 
 .empty {

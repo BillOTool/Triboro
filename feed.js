@@ -224,7 +224,6 @@ function parseRoute() {
   const parts = h.split("/");
   if (parts[0] === "people") return { name: "people" };
   if (parts[0] === "events") return { name: "events" };
-  if (parts[0] === "about") return { name: "about" };
   if (parts[0] === "c" && parts[1]) return { name: "character", id: parts[1] };
   if (parts[0] === "e" && parts[1]) return { name: "event", id: parts[1] };
   return { name: "feed" };
@@ -238,7 +237,6 @@ function highlightNav() {
       (r.name === "feed" && route === "feed") ||
       (r.name === "people" && route === "people") ||
       (r.name === "events" && route === "events") ||
-      (r.name === "about" && route === "about") ||
       (r.name === "character" && route === "people") ||
       (r.name === "event" && route === "events")
     );
@@ -252,7 +250,6 @@ function render() {
   if (r.name === "feed") renderFeed();
   else if (r.name === "people") renderPeople();
   else if (r.name === "events") renderEvents();
-  else if (r.name === "about") renderAbout();
   else if (r.name === "character") renderCharacter(r.id);
   else if (r.name === "event") renderEvent(r.id);
   commitSeenIds();
@@ -377,16 +374,6 @@ function renderEvent(id) {
       ${posts.length
         ? posts.map(p => postHtml(p)).join("")
         : `<div class="empty">No reactions yet.</div>`}
-    </div>`;
-}
-
-function renderAbout() {
-  ROOT.innerHTML = `
-    <div class="about-prose">
-      <h2>About this place</h2>
-      <p>Triboro is a 60+ floor apartment complex sealed off from the outside world for 73 years by toxic smog called <em>The Aurora</em>. About 6,000 people live inside. Society has evolved its own politics, economy, culture, and customs.</p>
-      <p>Almanapp is the in-house social network. Residents post here. So does the building itself, in a way.</p>
-      <p class="muted">A living fictional world by Bill O'Toole.</p>
     </div>`;
 }
 
