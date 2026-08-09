@@ -379,16 +379,46 @@ function renderEvent(id) {
 
 // ─── pieces ───
 
+// How long ago this landed in *this viewer's* feed. Wall-clock dates mean
+// nothing here — every viewer runs their own Triboro clock.
+function relTime(item) {
+  const t = personalTime() - (item.triboro_offset || 0);
+  if (t < 90) return "now";
+  if (t < 3600) return Math.floor(t / 60) + "m";
+  if (t < 86400) return Math.floor(t / 3600) + "h";
+  return Math.floor(t / 86400) + "d";
+}
+
+// Stable pseudo-random from an id, so a post's score never changes between
+// renders or between viewers.
+function hashId(id) {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+// Canon: every Security Branch post gets downvoted regardless of content.
+function voteScore(p) {
+  const c = CHARS_BY_ID[p.character_id] || {};
+  const h = hashId(p.id);
+  if (c.faction === "Security Branch") return -(4 + (h % 71));
+  const v = (h % 160) - 22;
+  return v === 0 ? 3 : v;
+}
+
 function eventBlockHtml(e, posts) {
   const list = posts.map(p => postHtml(p)).join("");
   let cls = "event";
   if (!_seenIds.has(e.id)) cls += " event-arriving";
   return `
     <div class="${cls}" data-event-id="${esc(e.id)}">
-      <h2 class="event-headline"><a href="#/e/${e.id}">${esc(e.title)}</a></h2>
-      ${e.description ? `<p class="event-dek">${esc(e.description)}</p>` : ""}
-      <div class="event-meta">${formatDate(e.created)} · ${posts.length} reactions</div>
-      ${list}
+      <div class="event-card">
+        <div class="event-kicker">Goings-on · ${relTime(e)}</div>
+        <h2 class="event-headline"><a href="#/e/${e.id}">${esc(e.title)}</a></h2>
+        ${e.description ? `<p class="event-dek">${esc(e.description)}</p>` : ""}
+        <div class="event-meta">${posts.length} ${posts.length === 1 ? "reply" : "replies"}</div>
+      </div>
+      <div class="thread">${list}</div>
     </div>`;
 }
 
@@ -400,15 +430,25 @@ function postHtml(p, opts = {}) {
   const c = CHARS_BY_ID[p.character_id] || {};
   let cls = opts.pinned ? "post pinned" : "post";
   if (!_seenIds.has(p.id)) cls += " post-arriving";
+  const score = voteScore(p);
   return `
     <article class="${cls}" data-post-id="${esc(p.id)}">
-      <div class="post-head">
-        <span class="post-name"><a href="#/c/${p.character_id}">${esc(c.name || p.character_id)}</a></span>
-        <span class="post-handle">${esc(c.handle || "")}</span>
-        ${opts.pinned ? `<span class="pin-badge">pinned</span>` : ""}
-        ${c.floor ? `<span class="post-floor">Floor ${esc(c.floor)}</span>` : ""}
+      <a class="post-avatar" href="#/c/${p.character_id}" aria-hidden="true" tabindex="-1">${esc(c.avatar || "🙂")}</a>
+      <div class="post-body">
+        <div class="post-head">
+          <a class="post-name" href="#/c/${p.character_id}">${esc(c.name || p.character_id)}</a>
+          <span class="post-handle">${esc(c.handle || "")}</span>
+          <span class="post-dot">·</span>
+          <span class="post-time">${relTime(p)}</span>
+          ${opts.pinned ? `<span class="pin-badge">pinned</span>` : ""}
+          ${c.floor ? `<span class="post-floor">Floor ${esc(c.floor)}</span>` : ""}
+        </div>
+        <p class="post-text">${esc(p.text)}</p>
+        <div class="post-actions-row">
+          <span class="vote ${score < 0 ? "down" : "up"}">${score < 0 ? "▼" : "▲"} ${Math.abs(score)}</span>
+          <a class="post-reply" href="#/c/${p.character_id}">Message</a>
+        </div>
       </div>
-      <p class="post-text">${esc(p.text)}</p>
     </article>`;
 }
 

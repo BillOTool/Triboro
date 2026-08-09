@@ -330,21 +330,42 @@ footer .reset-link:hover { color: var(--accent); }
 /* ─── event card ─── */
 
 .event {
-  margin-bottom: 38px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--rule);
+  margin-bottom: 22px;
+}
+
+/* The headline is a card at the top of a thread, not a newspaper banner. */
+.event-card {
+  background: var(--paper-light);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--link);
+  border-radius: 3px;
+  padding: 12px 16px 10px;
+}
+.event-kicker {
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+/* Replies hang off the headline on a thread line, Nextdoor-style. */
+.thread {
+  margin-left: 18px;
+  padding-left: 16px;
+  border-left: 2px solid var(--paper-dark);
 }
 
 .event:last-child { border-bottom: none; }
 
 .event-headline {
   font-family: "Arial Black", "Impact", "Helvetica", sans-serif;
-  font-size: 26px;
+  font-size: 19px;
   font-weight: 900;
-  line-height: 1.15;
-  margin: 0 0 4px;
+  line-height: 1.2;
+  margin: 0 0 3px;
   color: var(--link);
-  text-shadow: 1px 1px 0 var(--bevel-hi);
 }
 
 .event-headline a { color: var(--link); text-decoration: underline; }
@@ -352,10 +373,10 @@ footer .reset-link:hover { color: var(--accent); }
 .event-headline a:hover { color: var(--accent); }
 
 .event-dek {
-  font-style: italic;
   color: var(--ink-soft);
-  margin: 0 0 14px;
-  font-size: 16px;
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .event-meta {
@@ -370,9 +391,54 @@ footer .reset-link:hover { color: var(--accent); }
 /* ─── post ─── */
 
 .post {
-  padding: 14px 0;
-  border-top: 1px dashed var(--rule);
+  display: flex;
+  gap: 11px;
+  padding: 11px 10px 9px;
+  border-bottom: 1px solid rgba(138, 127, 90, 0.28);
+  transition: background 120ms ease;
 }
+.post:last-child { border-bottom: none; }
+.post:hover { background: var(--hover); }
+
+.post-avatar {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--paper-light);
+  border: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  line-height: 1;
+  text-decoration: none;
+}
+.post-avatar:hover { border-color: var(--ink-soft); }
+.post-body { flex: 1 1 auto; min-width: 0; }
+
+.post-dot { color: var(--muted); }
+.post-time { color: var(--muted); }
+
+/* Vote tallies. Canon: Security posts get downvoted regardless of content. */
+.post-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-family: "Courier New", monospace;
+  color: var(--muted);
+}
+.vote { letter-spacing: 0.04em; }
+.vote.up { color: var(--good); }
+.vote.down { color: var(--accent); }
+.post-reply {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--muted);
+}
+.post-reply:hover { color: var(--link); border-bottom-color: var(--link); text-decoration: none; }
 .post:first-of-type { border-top: 1px solid var(--ink-soft); }
 
 /* Soft arrival. Tiny scale-up with a gentle overshoot, a few px of
@@ -421,9 +487,10 @@ footer .reset-link:hover { color: var(--accent); }
 .post-head {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-bottom: 6px;
-  font-size: 14px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 2px;
+  font-size: 13px;
 }
 
 .post-name {
@@ -449,9 +516,10 @@ footer .reset-link:hover { color: var(--accent); }
 
 .post-text {
   margin: 0;
-  font-size: 17px;
-  line-height: 1.55;
+  font-size: 15.5px;
+  line-height: 1.5;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .post.pinned {
