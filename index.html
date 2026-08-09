@@ -24,14 +24,48 @@
 
   <nav class="subnav">
     <div class="subnav-links">
-      <a href="#/" data-route="feed" class="active">[ FEED ]</a>
-      <a href="#/people" data-route="people">[ PEOPLE ]</a>
-      <a href="#/events" data-route="events">[ EVENTS ]</a>
+      <a href="#/" data-route="feed" class="active">Feed</a>
+      <a href="#/people" data-route="people">People</a>
+      <a href="#/events" data-route="events">Events</a>
     </div>
     <button id="auth-chip" class="auth-chip" type="button"><span class="chip-name">Sign in</span></button>
   </nav>
 
-  <main id="root"></main>
+  <div class="shell">
+    <main id="root"></main>
+
+    <aside class="sidebar">
+      <div class="widget">
+        <div class="widget-head">Aurora Report</div>
+        <div class="widget-body">
+          <div class="aurora-dot">GREEN</div>
+          <div class="widget-note"><b id="side-smog">847</b> PPM · Do not stare directly</div>
+        </div>
+      </div>
+
+      <div class="widget">
+        <div class="widget-head">Who's around</div>
+        <div class="widget-body" id="side-online"></div>
+      </div>
+
+      <div class="widget widget-ad">
+        <div class="widget-head">Sponsored</div>
+        <div class="widget-body">
+          <div class="ad-title">KIRWIN'S SEED CLUB</div>
+          <div class="widget-note">Double points over 500 Kredits this week. Grow your status.</div>
+          <div class="ad-tag">Ad · Kirwin Foods</div>
+        </div>
+      </div>
+
+      <div class="widget">
+        <div class="widget-head">Notices</div>
+        <div class="widget-body widget-note">
+          Almanapp is maintained by three (3) staff. Please be patient with the
+          new filing system.
+        </div>
+      </div>
+    </aside>
+  </div>
 
   <footer>
     <div class="footer-badges">

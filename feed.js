@@ -725,6 +725,22 @@ function setHitCounter() {
   el.textContent = String(total).padStart(7, "0");
 }
 
+// Sidebar presence list. Deterministic per viewer so it doesn't reshuffle on
+// every render, and quietly wrong — a cheap platform's "online now" is always
+// a bit stale.
+function setSideOnline() {
+  const el = document.getElementById("side-online");
+  if (!el || !SITE) return;
+  const seed = hashSeed(viewerId());
+  const pool = SITE.characters.slice().sort((a, b) =>
+    ((hashId(a.id + seed) % 1000) - (hashId(b.id + seed) % 1000)));
+  const picks = pool.slice(0, 6);
+  el.innerHTML = picks.map(c =>
+    `<div class="side-person"><span class="dot"></span>` +
+    `<a href="#/c/${esc(c.id)}">${esc(c.name)}</a></div>`).join("") +
+    `<div class="widget-note" style="margin-top:6px">and ${SITE.characters.length - picks.length} others</div>`;
+}
+
 function setLastUpdated() {
   const el = document.getElementById("last-updated");
   if (!el) return;
@@ -779,6 +795,7 @@ function resetView(ev) {
   try {
     await loadSite();
     _lastGenerated = SITE.generated;
+    setSideOnline();
     // Pre-populate seenIds so the very first paint doesn't animate the entire
     // visible feed at once. Animations should signal NEW arrivals — not "the
     // page just loaded." From this point on, anything that crosses into
