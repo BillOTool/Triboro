@@ -1,34 +1,98 @@
 # Triboro — to do
 
 Standing backlog. Lives in the repo so it versions with the project.
-Last updated 2026-07-27.
+Last updated 2026-08-08.
 
-Status: **live and free** at https://billotool.github.io/Triboro/ — 88 posts,
-134 characters, 11 events. Everything is pushed. DMs work for all 134
+Status: **live and free** at https://billotool.github.io/Triboro/ — 180 posts,
+149 characters, 21 events. Everything is pushed. DMs work for all 149
 characters on Cloudflare Workers AI (Llama 3.3 70B), no API key, no card.
 
-Running costs are zero. The site is static files on Pages, so a visitor
-triggers no model calls. The only runtime spend is DMs, and that is on the
-free 10,000 neurons/day allocation (~180 DMs/day). Past that, visitors get
-the in-world "switchboard is overloaded" line rather than an error.
+Running costs are still zero. The site is static files on Pages, so a visitor
+triggers no model calls. The only runtime spend is DMs, on the free 10,000
+neurons/day allocation — now ~139/day rather than ~180, because `world.md`
+grew 38% today. Past that, visitors get the in-world "switchboard is
+overloaded" line rather than an error.
 
 ---
 
-## Decide first
+## Session 2026-08-08 — the story draft
 
-- [x] ~~`data/stories/` in a public repo~~ — gitignored 2026-07-26. Source
-      prose stays local. Nothing had been committed, so no history to scrub.
-      `data/stories.json` (titles/index) is still tracked.
-- [x] ~~Back up `data/stories/`~~ — done 2026-08-08. Private repo
-      **BillOTool/Triboro-stories** (offsite, versioned), plus a local mirror and
-      dated snapshots at `~/Local-Files/Triboro-stories/`. Run `triboro-backup`
-      after writing to refresh all three. Not iCloud, by design.
-- [ ] Rewrite the flooding headline in your own voice. Currently *"Water
-      reaches six floors; Council issues 'Notice of Dampness'"* — my
-      placeholder, not yours. It's the top headline on the live site.
-- [ ] Three duplicate post pairs on that event (Marla, Sister Maren, Tommy each
-      say their beat twice). Cut one of each, or leave them. Unpublish rather
-      than delete — reversible.
+Six of Bill's short stories went in. Saved to `data/stories/` (gitignored,
+now backed up — see below). From them: 15 new characters, 18 events and 146
+posts, published deliberately in Claude's voice so the thing could be shown
+around. **Bill edits into his own voice from here.**
+
+Canon settled this session:
+
+- **"Citizen Group", never "faction"**, in all prose. The `faction:`
+  frontmatter key stays — it's structural (`PUBLIC_CHAR_KEYS`, `feed.js`).
+- **Kirwin Foods holds the basements** (Bread Basket, Blind Fish hatcheries).
+  **The League moved to Floor 60**, directly under sealed 61.
+- **Floorships** (Bill's coinage, not "townships"): a block of floors with its
+  own small government, ten stacked per side, East and West joined by **the
+  bridge**, the building an 'h' from above. Most can't field candidates; a
+  consolidation commission is dissolving them. The `lore/README.md`
+  "retired layer" note was rewritten so this isn't mistaken for the old
+  Magothy framing and reverted.
+- **Everyone has guns**, unremarked.
+- **Triboro**, never "Triborough".
+- Aurora Cult's prime: **perks men**, the **Christofferson Brotherhood**, the
+  **Aurora Conferences**.
+
+Tooling added this session:
+
+- **Events have a draft flag.** They used to ship unconditionally, so any
+  placeholder headline went live on the next rebuild. `build_site()` now skips
+  held events and any published post hanging off one; the admin has a
+  DRAFT/PUBLIC toggle; CI fails if a draft reaches `site.json`.
+- **Events are editable in the admin.** Posts always were; events weren't, so
+  headlines could only be changed by hand-editing `events.json` — which is how
+  that file got broken twice. Click `edit`, headline and description go
+  editable, Cmd+Enter saves.
+- **Preview / Live links** in the admin header.
+- **The About page is gone.** Explaining the premise up front deflated it.
+- **The feed reads like a feed**: avatar rows, relative timestamps, vote
+  tallies (Security Branch posts are always downvoted — that was always canon
+  and the site never showed it), a Message link that opens the real DM.
+- **Reskinned as a cheap social platform** rather than a 1995 newspaper —
+  which is what `world.md` always described: "run by three underfunded IT
+  staff in their late 60s."
+- **A fresh set of stories every visit.** Each page load deals 7 of the ~21
+  events, reshuffles, and restarts the clock so posts arrive from "now".
+  Nothing is generated — same corpus, re-dealt. Tune
+  `FEED_EVENTS_PER_VISIT` in `feed.js`.
+
+## Gotchas worth remembering
+
+- **Don't hand-edit `posts.json` / `events.json` in an editor.** It broke twice
+  today (an orphan `{`, an empty `{}`). Use the admin UI.
+- **Deleting an event orphans its posts.** They stay published and render with
+  no headline. 53 such posts are currently *unpublished*, not deleted, from
+  seven events Bill cut.
+- **The worker can 404 a character on the first request after a deploy** —
+  edge propagation, not a stale bundle. Retry before redeploying.
+  Chat auth is `Authorization: Bearer <token>`, not a body field.
+- `server.py` routes OPTIONS/GET/POST/PUT/DELETE — **no PATCH**.
+- **Viewer-time is real seconds since a viewer's first load.** Before today's
+  recompression a first-time visitor saw 8 of 86 posts and waited 40 minutes
+  for the rest. Check this before sharing the link anywhere.
+
+## Next
+
+- [ ] **Rewrite the event headlines.** They're still Claude's. Most visible
+      text on the site. Admin → Events → `edit`.
+- [ ] **Edit posts into your voice.** Saving an edit auto-marks it canon
+      (`authored: true`). `build_lore_context()` feeds the last 20 canon posts
+      into every future generation — the count is still **0**, so it's running
+      on empty. About 20 good edits fills the window.
+- [ ] The 7th story (six of seven arrived).
+- [ ] Is glue an ordinary building-wide commodity (a `world.md` fact) or just
+      what a certain kind of person does (character bodies)?
+- [ ] The silver-yoyo event was deleted, so Ray's story has no event and his
+      character body still points at a meet that doesn't exist. Restore,
+      rewrite, or cut the thread.
+- [ ] Decide about the 53 unpublished orphans: republish, re-point at another
+      event, or delete.
 
 ## The Claude switch — deliberately not finished
 
