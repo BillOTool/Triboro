@@ -19,9 +19,10 @@ the in-world "switchboard is overloaded" line rather than an error.
 - [x] ~~`data/stories/` in a public repo~~ — gitignored 2026-07-26. Source
       prose stays local. Nothing had been committed, so no history to scrub.
       `data/stories.json` (titles/index) is still tracked.
-- [ ] **Back up `data/stories/` somewhere.** It's now outside git, so it has no
-      version history and dies with the disk. Not iCloud — that corrupted this
-      repo once. External disk or a local Time Machine target.
+- [x] ~~Back up `data/stories/`~~ — done 2026-08-08. Private repo
+      **BillOTool/Triboro-stories** (offsite, versioned), plus a local mirror and
+      dated snapshots at `~/Local-Files/Triboro-stories/`. Run `triboro-backup`
+      after writing to refresh all three. Not iCloud, by design.
 - [ ] Rewrite the flooding headline in your own voice. Currently *"Water
       reaches six floors; Council issues 'Notice of Dampness'"* — my
       placeholder, not yours. It's the top headline on the live site.
